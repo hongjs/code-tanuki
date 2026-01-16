@@ -48,6 +48,7 @@ export type ReviewStatus =
   | 'fetching-github'
   | 'fetching-jira'
   | 'ai-review'
+  | 'approval'
   | 'posting-comments'
   | 'success'
   | 'error';

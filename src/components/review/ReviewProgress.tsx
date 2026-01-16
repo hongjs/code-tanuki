@@ -20,6 +20,7 @@ import GitHubIcon from '@mui/icons-material/GitHub';
 import DescriptionIcon from '@mui/icons-material/Description';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import HowToRegIcon from '@mui/icons-material/HowToReg';
 import { ReviewStatus } from '@/types/review';
 
 interface ReviewProgressProps {
@@ -53,6 +54,7 @@ const steps = [
   { key: 'fetching-github', label: 'GitHub PR', icon: GitHubIcon, color: '#667eea' },
   { key: 'fetching-jira', label: 'Jira Ticket', icon: DescriptionIcon, color: '#764ba2' },
   { key: 'ai-review', label: 'AI Analysis', icon: AutoAwesomeIcon, color: '#f093fb' },
+  { key: 'approval', label: 'Approval', icon: HowToRegIcon, color: '#3b82f6' },
   { key: 'posting-comments', label: 'Post Comments', icon: CloudUploadIcon, color: '#f5576c' },
 ];
 
@@ -65,10 +67,12 @@ export function ReviewProgress({ status, error }: ReviewProgressProps) {
         return 1;
       case 'ai-review':
         return 2;
-      case 'posting-comments':
+      case 'approval':
         return 3;
-      case 'success':
+      case 'posting-comments':
         return 4;
+      case 'success':
+        return 5;
       case 'error':
         return -1;
       default:

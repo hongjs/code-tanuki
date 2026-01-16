@@ -31,6 +31,13 @@ export class ClaudeAPIError extends AppError {
   }
 }
 
+export class GeminiAPIError extends AppError {
+  constructor(message: string, context?: Record<string, unknown>) {
+    super(message, 'GEMINI_API_ERROR', 502, context);
+    this.name = 'GeminiAPIError';
+  }
+}
+
 export class ValidationError extends AppError {
   constructor(message: string, context?: Record<string, unknown>) {
     super(message, 'VALIDATION_ERROR', 400, context);

@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { GitHubClient } from '@/lib/api/github';
 import { JiraClient } from '@/lib/api/jira';
 import { ClaudeClient } from '@/lib/api/claude';
+import { GeminiClient } from '@/lib/api/gemini';
 import { getStorage } from '@/lib/storage';
 import { parseGitHubPRUrl } from '@/lib/utils/parsers';
 import { validateReviewRequest } from '@/lib/utils/validation';
@@ -10,6 +11,8 @@ import { extractJiraTicketFromTitle } from '@/lib/constants/regex';
 import { logger } from '@/lib/logger/winston';
 import { Review, ReviewMetadata, StepResult } from '@/types/review';
 import { DuplicateReviewError } from '@/types/errors';
+import { getProviderFromModelId } from '@/lib/constants/models';
+import { AIReviewResponse } from '@/types/ai';
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -104,28 +107,67 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // 7. Get AI review from Claude
+      // 7. Get AI review from Claude or Gemini
       const aiReviewStepStart = Date.now();
       try {
-        const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
-        if (!anthropicApiKey) {
-          throw new Error('ANTHROPIC_API_KEY environment variable is not set');
-        }
-        const claudeClient = new ClaudeClient(anthropicApiKey);
+        const provider = getProviderFromModelId(validatedRequest.modelId);
+        let reviewResponse: AIReviewResponse;
 
-        const reviewResponse = await claudeClient.reviewPR({
-          diff: pr.diff,
-          prTitle: pr.title,
-          prBody: pr.body,
-          jiraTicket,
-          additionalPrompt: validatedRequest.additionalPrompt,
-          modelId: validatedRequest.modelId,
-        });
+        if (provider === 'gemini') {
+          const geminiApiKey = process.env.GEMINI_API_KEY;
+          if (!geminiApiKey) {
+            throw new Error('GEMINI_API_KEY environment variable is not set');
+          }
+          const geminiClient = new GeminiClient(geminiApiKey);
+
+          reviewResponse = await geminiClient.reviewPR({
+            diff: pr.diff,
+            prTitle: pr.title,
+            prBody: pr.body,
+            jiraTicket,
+            additionalPrompt: validatedRequest.additionalPrompt,
+            modelId: validatedRequest.modelId,
+            provider: 'gemini',
+          });
+        } else {
+          const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
+          if (!anthropicApiKey) {
+            throw new Error('ANTHROPIC_API_KEY environment variable is not set');
+          }
+          const claudeClient = new ClaudeClient(anthropicApiKey);
+
+          reviewResponse = await claudeClient.reviewPR({
+            diff: pr.diff,
+            prTitle: pr.title,
+            prBody: pr.body,
+            jiraTicket,
+            additionalPrompt: validatedRequest.additionalPrompt,
+            modelId: validatedRequest.modelId,
+          });
+        }
 
         steps.aiReview = {
           success: true,
           durationMs: Date.now() - aiReviewStepStart,
         };
+
+        // If previewOnly mode, return comments for user approval
+        if (validatedRequest.previewOnly) {
+          logger.info('Returning preview of AI review', {
+            prNumber,
+            commentsCount: reviewResponse.comments.length,
+          });
+
+          return NextResponse.json({
+            success: true,
+            preview: true,
+            prTitle: pr.title,
+            prUrl: validatedRequest.prUrl,
+            jiraTicketId,
+            comments: reviewResponse.comments,
+            modelId: validatedRequest.modelId,
+          });
+        }
 
         // 8. Post review comments to GitHub
         const postCommentsStepStart = Date.now();

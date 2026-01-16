@@ -24,6 +24,19 @@ const envSchema = z.object({
     .pipe(z.number().min(0).max(1))
     .default('0.3'),
 
+  GEMINI_API_KEY: z.string().optional(),
+  GEMINI_MODEL_DEFAULT: z.string().default('gemini-2.0-flash'),
+  GEMINI_MAX_TOKENS: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().positive())
+    .default('4096'),
+  GEMINI_TEMPERATURE: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().min(0).max(2))
+    .default('0.3'),
+
   STORAGE_TYPE: z.enum(['json']).default('json'),
   DATA_DIR: z.string().default('./data/reviews'),
 

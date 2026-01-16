@@ -117,6 +117,10 @@ export function HistoryFilters({
           <MenuItem value="claude-opus-4-20250514">Claude Opus 4</MenuItem>
           <MenuItem value="claude-sonnet-4-20250514">Claude Sonnet 4</MenuItem>
           <MenuItem value="claude-haiku-4-20250514">Claude Haiku 4</MenuItem>
+          <MenuItem value="gemini-2.0-flash">Gemini 2.0 Flash</MenuItem>
+          <MenuItem value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</MenuItem>
+          <MenuItem value="gemini-1.5-pro">Gemini 1.5 Pro</MenuItem>
+          <MenuItem value="gemini-1.5-flash">Gemini 1.5 Flash</MenuItem>
         </Select>
       </FormControl>
 

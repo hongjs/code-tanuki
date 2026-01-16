@@ -20,7 +20,9 @@ import {
 } from '@mui/material';
 import { ModelSelector } from './ModelSelector';
 import { ReviewProgress } from './ReviewProgress';
-import { ReviewStatus } from '@/types/review';
+import { ReviewPreviewDialog } from './ReviewPreviewDialog';
+import { ReviewStatus, ReviewComment } from '@/types/review';
+import { ALL_AI_MODELS } from '@/lib/constants/models';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import SpeedIcon from '@mui/icons-material/Speed';
@@ -39,10 +41,14 @@ export function ReviewForm() {
   const [successMessage, setSuccessMessage] = useState<string>();
   const [prTitle, setPrTitle] = useState<string>();
   const [prTitleLoading, setPrTitleLoading] = useState(false);
+
   const [prTitleError, setPrTitleError] = useState<string>();
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewComments, setPreviewComments] = useState<ReviewComment[]>([]);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const progressTimeoutsRef = useRef<NodeJS.Timeout[]>([]);
   const isCancelledRef = useRef(false);
-  const prUrlDebounceRef = useRef<NodeJS.Timeout>();
+  const prUrlDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch PR title when URL is entered
   const fetchPRTitle = async (url: string) => {
@@ -165,9 +171,6 @@ export function ReviewForm() {
       setTimeout(() => {
         if (!isCancelledRef.current) setStatus('ai-review');
       }, 2000),
-      setTimeout(() => {
-        if (!isCancelledRef.current) setStatus('posting-comments');
-      }, 5000),
     ];
     progressTimeoutsRef.current = timeouts;
 
@@ -182,6 +185,7 @@ export function ReviewForm() {
           jiraTicketId: jiraTicketId || undefined,
           additionalPrompt: additionalPrompt || undefined,
           modelId,
+          previewOnly: true,
         }),
       });
 
@@ -214,7 +218,54 @@ export function ReviewForm() {
         throw new Error(errorMessage);
       }
 
+      if (data.preview) {
+        setPreviewComments(data.comments);
+        setPreviewOpen(true);
+        setStatus('approval'); // Update status to approval
+      } else {
+        clearProgressTimeouts();
+        setStatus('success');
+        setSuccessMessage(`Review completed! Posted ${data.commentsCount} comments to PR.`);
+
+        // Reset form after success
+        setTimeout(() => {
+          setPrUrl('');
+          setJiraTicketId('');
+          setAdditionalPrompt('');
+          setStatus('idle');
+        }, 5000);
+      }
+    } catch (err) {
       clearProgressTimeouts();
+      setStatus('error');
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    }
+  };
+
+  const handleApproveReview = async (comments: ReviewComment[]) => {
+    setIsSubmittingReview(true);
+    setStatus('posting-comments'); // Update status to posting
+    try {
+      const response = await fetch('/api/review/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prUrl,
+          jiraTicketId: jiraTicketId || undefined,
+          modelId,
+          comments,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to submit review');
+      }
+
+      setPreviewOpen(false);
       setStatus('success');
       setSuccessMessage(`Review completed! Posted ${data.commentsCount} comments to PR.`);
 
@@ -224,16 +275,33 @@ export function ReviewForm() {
         setJiraTicketId('');
         setAdditionalPrompt('');
         setStatus('idle');
+        setSuccessMessage(undefined);
       }, 5000);
     } catch (err) {
-      clearProgressTimeouts();
-      setStatus('error');
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Submit error:', err);
+      // Don't close dialog on error so user can try again
+      alert(err instanceof Error ? err.message : 'Failed to submit review');
+    } finally {
+      setIsSubmittingReview(false);
     }
   };
 
   return (
     <Box>
+      <ReviewPreviewDialog
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        onApprove={handleApproveReview}
+        onReject={() => {
+          setPreviewOpen(false);
+          setStatus('idle');
+        }}
+        comments={previewComments}
+        prTitle={prTitle || 'Pull Request'}
+        prUrl={prUrl}
+        modelName={ALL_AI_MODELS.find((m) => m.id === modelId)?.name || modelId}
+        isSubmitting={isSubmittingReview}
+      />
       {/* Header Section */}
       <Fade in timeout={600}>
         <Box sx={{ mb: 4 }}>
