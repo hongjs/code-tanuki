@@ -27,9 +27,14 @@ AI-powered PR review tool for dev managers using Next.js 16, TypeScript, Materia
 
 - Node.js 20+
 - npm or yarn
-- GitHub Personal Access Token (with `repo` scope)
-- Jira API Token
-- Anthropic API Key
+- **Anthropic API Key** (required) - See [Claude API Setup Guide](./CLAUDE_API_SETUP.md)
+  - Get your key from: https://console.anthropic.com/
+  - Supports Claude Opus 4, Sonnet 4, and Haiku 4
+- **GitHub Personal Access Token** (required) - See [GitHub API Setup Guide](./GITHUB_API_SETUP.md)
+  - Fine-grained token (recommended): Pull requests **Read and write**
+  - Classic token: `public_repo` or `repo` scope
+- **Jira API Token** (optional) - See [Jira API Setup Guide](./JIRA_API_SETUP.md)
+  - Required permissions: **Browse Projects**, **Add Comments**
 
 ## Quick Start
 
@@ -56,11 +61,16 @@ cp .env.example .env
 
 Edit `.env` and fill in your API keys:
 
-- `GITHUB_TOKEN`: Your GitHub Personal Access Token
-- `JIRA_BASE_URL`: Your Jira instance URL (e.g., `https://yourcompany.atlassian.net`)
-- `JIRA_EMAIL`: Your Jira email
-- `JIRA_API_TOKEN`: Your Jira API token
-- `ANTHROPIC_API_KEY`: Your Anthropic API key
+- `ANTHROPIC_API_KEY`: Your Anthropic API key (required, starts with `sk-ant-`)
+  - **See [Claude API Setup Guide](./CLAUDE_API_SETUP.md)** for detailed instructions
+  - Get from: https://console.anthropic.com/settings/keys
+- `GITHUB_TOKEN`: Your GitHub Personal Access Token (required)
+  - **See [GitHub API Setup Guide](./GITHUB_API_SETUP.md)** for detailed instructions
+  - Fine-grained token (recommended): **Pull requests: Read and write**
+  - Classic token: `public_repo` or `repo` scope
+- `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`: Jira integration (optional)
+  - **See [Jira API Setup Guide](./JIRA_API_SETUP.md)** for detailed instructions
+  - Required permissions: **Browse Projects**, **Add Comments**
 
 4. **Create data directories**
 
@@ -173,14 +183,27 @@ src/
 
 See `.env.example` for all available environment variables.
 
-Key variables:
-- `GITHUB_TOKEN`: GitHub API access
-- `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`: Jira integration
-- `ANTHROPIC_API_KEY`: Claude AI access
+### Required Variables
+
+- `ANTHROPIC_API_KEY`: Claude AI access - **[Setup Guide](./CLAUDE_API_SETUP.md)**
+  - Get from: https://console.anthropic.com/settings/keys
+  - Format: starts with `sk-ant-`
+- `GITHUB_TOKEN`: GitHub API access - **[Setup Guide](./GITHUB_API_SETUP.md)**
+
+### Optional Variables (Jira Integration)
+
+- `JIRA_BASE_URL`: Jira instance URL (e.g., `https://yourcompany.atlassian.net`)
+- `JIRA_EMAIL`: Jira account email
+- `JIRA_API_TOKEN`: Jira API token
+
+### Configuration Variables
+
 - `CLAUDE_MAX_TOKENS`: Max output tokens (default: 4096)
 - `CLAUDE_TEMPERATURE`: AI temperature (default: 0.3)
 - `DATA_DIR`: Data storage directory (default: `./data/reviews`)
 - `LOG_DIR`: Log directory (default: `./logs`)
+- `RETRY_MAX_ATTEMPTS`: Max retry attempts (default: 3)
+- `DUPLICATE_CHECK_MINUTES`: Duplicate review check window (default: 5)
 
 ## Storage
 
@@ -229,6 +252,14 @@ ISC
 ## Contributing
 
 Contributions are welcome! Please open an issue or submit a pull request.
+
+## Documentation
+
+- **[Claude API Setup Guide](./CLAUDE_API_SETUP.md)** - Anthropic API key configuration and model selection
+- **[GitHub API Setup Guide](./GITHUB_API_SETUP.md)** - GitHub token configuration
+- **[Jira API Setup Guide](./JIRA_API_SETUP.md)** - Jira API token configuration (optional)
+- **[Getting Started Guide](./GETTING_STARTED.md)** - Step-by-step setup instructions (if available)
+- **[UI Improvements](./UI_IMPROVEMENTS.md)** - UI/UX enhancement ideas (if available)
 
 ## Support
 

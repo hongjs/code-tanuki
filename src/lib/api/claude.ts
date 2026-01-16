@@ -9,6 +9,14 @@ export class ClaudeClient {
   private client: Anthropic;
 
   constructor(apiKey: string) {
+    if (!apiKey || apiKey.trim() === '') {
+      throw new ClaudeAPIError('ANTHROPIC_API_KEY is not configured. Please set it in your .env file.', {});
+    }
+
+    if (!apiKey.startsWith('sk-ant-')) {
+      throw new ClaudeAPIError('Invalid ANTHROPIC_API_KEY format. It should start with "sk-ant-"', {});
+    }
+
     this.client = new Anthropic({
       apiKey,
     });
@@ -96,6 +104,24 @@ export class ClaudeClient {
           }
 
           const message = error instanceof Error ? error.message : 'Unknown error';
+
+          // Provide clearer error messages for common authentication issues
+          if (message.includes('authentication') || message.includes('apiKey') || message.includes('authToken')) {
+            logger.error(`Claude API authentication failed`, { error: message });
+            throw new ClaudeAPIError(
+              'Claude API authentication failed. Please verify your ANTHROPIC_API_KEY in the .env file.',
+              { originalError: message }
+            );
+          }
+
+          if (message.includes('invalid_api_key') || message.includes('401')) {
+            logger.error(`Invalid Claude API key`, { error: message });
+            throw new ClaudeAPIError(
+              'Invalid ANTHROPIC_API_KEY. Please check your API key in the .env file.',
+              { originalError: message }
+            );
+          }
+
           logger.error(`Failed to get AI review from Claude`, { error: message });
           throw new ClaudeAPIError(`Failed to get AI review: ${message}`, {
             modelId: request.modelId,

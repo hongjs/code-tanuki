@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Box,
   TextField,
@@ -16,6 +16,7 @@ import {
   Avatar,
   Stack,
   Chip,
+  CircularProgress,
 } from '@mui/material';
 import { ModelSelector } from './ModelSelector';
 import { ReviewProgress } from './ReviewProgress';
@@ -24,17 +25,123 @@ import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import SpeedIcon from '@mui/icons-material/Speed';
 import SecurityIcon from '@mui/icons-material/Security';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
 
 export function ReviewForm() {
   const [prUrl, setPrUrl] = useState('');
   const [jiraTicketId, setJiraTicketId] = useState('');
   const [additionalPrompt, setAdditionalPrompt] = useState('');
   const [modelId, setModelId] = useState(
-    process.env.NEXT_PUBLIC_CLAUDE_MODEL_DEFAULT || 'claude-opus-4-20250514'
+    process.env.NEXT_PUBLIC_CLAUDE_MODEL_DEFAULT || 'claude-haiku-4-20250514'
   );
   const [status, setStatus] = useState<ReviewStatus>('idle');
   const [error, setError] = useState<string>();
   const [successMessage, setSuccessMessage] = useState<string>();
+  const [prTitle, setPrTitle] = useState<string>();
+  const [prTitleLoading, setPrTitleLoading] = useState(false);
+  const [prTitleError, setPrTitleError] = useState<string>();
+  const progressTimeoutsRef = useRef<NodeJS.Timeout[]>([]);
+  const isCancelledRef = useRef(false);
+  const prUrlDebounceRef = useRef<NodeJS.Timeout>();
+
+  // Fetch PR title when URL is entered
+  const fetchPRTitle = async (url: string) => {
+    if (!url) {
+      setPrTitle(undefined);
+      setPrTitleError(undefined);
+      return;
+    }
+
+    // Basic validation for GitHub PR URL - supports owner/repo names with letters, numbers, hyphens, underscores, dots
+    const githubPRRegex = /^https?:\/\/github\.com\/[\w.-]+\/[\w.-]+\/pull\/\d+/i;
+    if (!githubPRRegex.test(url)) {
+      console.log('PR URL validation failed:', url);
+      setPrTitle(undefined);
+      setPrTitleError(undefined);
+      return;
+    }
+
+    console.log('Fetching PR title for:', url);
+    try {
+      setPrTitleLoading(true);
+      setPrTitleError(undefined);
+      const response = await fetch(`/api/github/pr?url=${encodeURIComponent(url)}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('PR title fetched:', data.title);
+        setPrTitle(data.title);
+        setPrTitleError(undefined);
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to fetch PR title:', response.status, errorData);
+        setPrTitle(undefined);
+        setPrTitleError(errorData.error || 'Failed to fetch PR details');
+      }
+    } catch (err) {
+      console.error('Error fetching PR title:', err);
+      setPrTitle(undefined);
+      setPrTitleError('Network error while fetching PR details');
+    } finally {
+      setPrTitleLoading(false);
+    }
+  };
+
+  // Clear error when user modifies inputs
+  const handleInputChange = (field: 'prUrl' | 'jiraTicketId' | 'additionalPrompt', value: string) => {
+    if (error) {
+      setError(undefined);
+    }
+
+    switch (field) {
+      case 'prUrl':
+        setPrUrl(value);
+
+        // Debounce PR title fetch
+        if (prUrlDebounceRef.current) {
+          clearTimeout(prUrlDebounceRef.current);
+        }
+        prUrlDebounceRef.current = setTimeout(() => {
+          fetchPRTitle(value);
+        }, 500);
+        break;
+      case 'jiraTicketId':
+        setJiraTicketId(value);
+        break;
+      case 'additionalPrompt':
+        setAdditionalPrompt(value);
+        break;
+    }
+  };
+
+  // Clear all progress timeouts
+  const clearProgressTimeouts = () => {
+    progressTimeoutsRef.current.forEach(clearTimeout);
+    progressTimeoutsRef.current = [];
+    isCancelledRef.current = true;
+  };
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      clearProgressTimeouts();
+    };
+  }, []);
+
+  const handleReset = () => {
+    setPrUrl('');
+    setJiraTicketId('');
+    setAdditionalPrompt('');
+    setError(undefined);
+    setSuccessMessage(undefined);
+    setPrTitle(undefined);
+    setPrTitleError(undefined);
+    setStatus('idle');
+    clearProgressTimeouts();
+    if (prUrlDebounceRef.current) {
+      clearTimeout(prUrlDebounceRef.current);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,13 +154,24 @@ export function ReviewForm() {
     setStatus('fetching-github');
     setError(undefined);
     setSuccessMessage(undefined);
+    clearProgressTimeouts();
+    isCancelledRef.current = false;
+
+    // Schedule simulated progress updates with cancellation check
+    const timeouts = [
+      setTimeout(() => {
+        if (!isCancelledRef.current) setStatus('fetching-jira');
+      }, 1000),
+      setTimeout(() => {
+        if (!isCancelledRef.current) setStatus('ai-review');
+      }, 2000),
+      setTimeout(() => {
+        if (!isCancelledRef.current) setStatus('posting-comments');
+      }, 5000),
+    ];
+    progressTimeoutsRef.current = timeouts;
 
     try {
-      // Simulate progress through steps
-      setTimeout(() => setStatus('fetching-jira'), 1000);
-      setTimeout(() => setStatus('ai-review'), 2000);
-      setTimeout(() => setStatus('posting-comments'), 5000);
-
       const response = await fetch('/api/review', {
         method: 'POST',
         headers: {
@@ -70,9 +188,33 @@ export function ReviewForm() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to submit review');
+        // Parse error to identify which service failed
+        let errorMessage = data.error || 'Failed to submit review';
+
+        if (data.steps) {
+          const failedStep = Object.entries(data.steps).find(
+            ([_, step]: [string, any]) => step.success === false && step.error
+          );
+
+          if (failedStep) {
+            const [stepName, stepData] = failedStep;
+            const serviceMap: Record<string, string> = {
+              fetchGitHub: 'GitHub',
+              fetchJira: 'Jira',
+              aiReview: 'Claude AI',
+              postGitHubComments: 'GitHub Comments',
+              postJiraComment: 'Jira Comment',
+            };
+
+            const serviceName = serviceMap[stepName] || stepName;
+            errorMessage = `${serviceName}: ${(stepData as any).error}`;
+          }
+        }
+
+        throw new Error(errorMessage);
       }
 
+      clearProgressTimeouts();
       setStatus('success');
       setSuccessMessage(`Review completed! Posted ${data.commentsCount} comments to PR.`);
 
@@ -84,6 +226,7 @@ export function ReviewForm() {
         setStatus('idle');
       }, 5000);
     } catch (err) {
+      clearProgressTimeouts();
       setStatus('error');
       setError(err instanceof Error ? err.message : 'An error occurred');
     }
@@ -187,30 +330,80 @@ export function ReviewForm() {
               onSubmit={handleSubmit}
               sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}
             >
-              <TextField
-                label="GitHub PR URL"
-                placeholder="https://github.com/owner/repo/pull/123"
-                value={prUrl}
-                onChange={(e) => setPrUrl(e.target.value)}
-                required
-                fullWidth
-                disabled={status !== 'idle'}
-                InputProps={{
-                  sx: {
-                    '&:hover': {
-                      '& fieldset': {
-                        borderColor: '#667eea !important',
+              <Box>
+                <TextField
+                  label="GitHub PR URL"
+                  placeholder="https://github.com/owner/repo/pull/123"
+                  value={prUrl}
+                  onChange={(e) => handleInputChange('prUrl', e.target.value)}
+                  required
+                  fullWidth
+                  disabled={status !== 'idle'}
+                  InputProps={{
+                    sx: {
+                      '&:hover': {
+                        '& fieldset': {
+                          borderColor: '#667eea !important',
+                        },
                       },
                     },
-                  },
-                }}
-              />
+                  }}
+                />
+                {prTitleLoading && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                    <CircularProgress size={16} sx={{ color: '#667eea' }} />
+                    <Typography variant="caption" color="text.secondary">
+                      Fetching PR details...
+                    </Typography>
+                  </Box>
+                )}
+                {prTitle && !prTitleLoading && (
+                  <Fade in>
+                    <Box
+                      sx={{
+                        mt: 1,
+                        p: 1.5,
+                        borderRadius: '8px',
+                        background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%)',
+                        border: '1px solid rgba(102, 126, 234, 0.2)',
+                      }}
+                    >
+                      <Typography variant="caption" sx={{ color: '#667eea', fontWeight: 600, display: 'block', mb: 0.5 }}>
+                        Pull Request
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: 'text.primary' }}>
+                        {prTitle}
+                      </Typography>
+                    </Box>
+                  </Fade>
+                )}
+                {prTitleError && !prTitleLoading && (
+                  <Fade in>
+                    <Box
+                      sx={{
+                        mt: 1,
+                        p: 1.5,
+                        borderRadius: '8px',
+                        background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(220, 38, 38, 0.05) 100%)',
+                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                      }}
+                    >
+                      <Typography variant="caption" sx={{ color: '#ef4444', fontWeight: 600, display: 'block', mb: 0.5 }}>
+                        Error
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: '#991b1b' }}>
+                        {prTitleError}
+                      </Typography>
+                    </Box>
+                  </Fade>
+                )}
+              </Box>
 
               <TextField
                 label="Jira Ticket ID (Optional)"
                 placeholder="BYD-1234"
                 value={jiraTicketId}
-                onChange={(e) => setJiraTicketId(e.target.value)}
+                onChange={(e) => handleInputChange('jiraTicketId', e.target.value)}
                 fullWidth
                 disabled={status !== 'idle'}
                 helperText="Leave empty to auto-extract from PR title"
@@ -220,7 +413,7 @@ export function ReviewForm() {
                 label="Additional Instructions (Optional)"
                 placeholder="Focus on security, performance, best practices..."
                 value={additionalPrompt}
-                onChange={(e) => setAdditionalPrompt(e.target.value)}
+                onChange={(e) => handleInputChange('additionalPrompt', e.target.value)}
                 fullWidth
                 multiline
                 rows={4}
@@ -230,36 +423,59 @@ export function ReviewForm() {
 
               <ModelSelector value={modelId} onChange={setModelId} />
 
-              <Button
-                type="submit"
-                variant="contained"
-                size="large"
-                disabled={status !== 'idle'}
-                fullWidth
-                startIcon={<RocketLaunchIcon />}
-                sx={{
-                  py: 1.5,
-                  fontSize: '1.1rem',
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  '&::before': {
-                    content: '""',
-                    position: 'absolute',
-                    top: 0,
-                    left: '-100%',
-                    width: '100%',
-                    height: '100%',
-                    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
-                    transition: 'left 0.5s',
-                  },
-                  '&:hover::before': {
-                    left: '100%',
-                  },
-                }}
-              >
-                {status !== 'idle' && status !== 'success' ? 'Reviewing...' : 'Start Review'}
-              </Button>
+              <Stack direction="row" spacing={2}>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  size="large"
+                  disabled={status !== 'idle'}
+                  fullWidth
+                  startIcon={<RocketLaunchIcon />}
+                  sx={{
+                    py: 1.5,
+                    fontSize: '1.1rem',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      top: 0,
+                      left: '-100%',
+                      width: '100%',
+                      height: '100%',
+                      background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+                      transition: 'left 0.5s',
+                    },
+                    '&:hover::before': {
+                      left: '100%',
+                    },
+                  }}
+                >
+                  {status !== 'idle' && status !== 'success' ? 'Reviewing...' : 'Start Review'}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outlined"
+                  size="large"
+                  disabled={status !== 'idle' && status !== 'error'}
+                  onClick={handleReset}
+                  startIcon={<RestartAltIcon />}
+                  sx={{
+                    py: 1.5,
+                    fontSize: '1.1rem',
+                    borderColor: '#667eea',
+                    color: '#667eea',
+                    '&:hover': {
+                      borderColor: '#764ba2',
+                      backgroundColor: 'rgba(102, 126, 234, 0.04)',
+                    },
+                  }}
+                >
+                  Reset
+                </Button>
+              </Stack>
             </Box>
 
             <ReviewProgress status={status} error={error} />

@@ -107,7 +107,10 @@ export async function POST(request: NextRequest) {
       // 7. Get AI review from Claude
       const aiReviewStepStart = Date.now();
       try {
-        const anthropicApiKey = process.env.ANTHROPIC_API_KEY!;
+        const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
+        if (!anthropicApiKey) {
+          throw new Error('ANTHROPIC_API_KEY environment variable is not set');
+        }
         const claudeClient = new ClaudeClient(anthropicApiKey);
 
         const reviewResponse = await claudeClient.reviewPR({
