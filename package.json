@@ -1,0 +1,60 @@
+{
+  "name": "codeowl",
+  "version": "1.0.0",
+  "description": "AI-powered PR review tool",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "docker:build": "docker build -t codeowl:latest .",
+    "docker:run": "docker run -p 3000:3000 --env-file .env -v ./data:/data -v ./logs:/logs codeowl:latest",
+    "docker:compose:up": "docker-compose up -d",
+    "docker:compose:down": "docker-compose down",
+    "docker:compose:logs": "docker-compose logs -f"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/icons-material": "^6.3.0",
+    "@mui/material": "^6.3.0",
+    "@mui/x-data-grid": "^7.24.0",
+    "@octokit/rest": "^21.1.0",
+    "axios": "^1.7.9",
+    "date-fns": "^4.1.0",
+    "next": "16.1.2",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "uuid": "^11.0.5",
+    "winston": "^3.17.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@types/react": "19.2.3",
+    "@types/react-dom": "19.2.3",
+    "@types/uuid": "^10.0.0",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.18.0",
+    "eslint-config-next": "^16.0.0",
+    "postcss": "^8.4.49",
+    "prettier": "^3.4.2",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hongjs/codeowl.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hongjs/codeowl/issues"
+  },
+  "homepage": "https://github.com/hongjs/codeowl#readme",
+  "author": "",
+  "license": "ISC"
+}
