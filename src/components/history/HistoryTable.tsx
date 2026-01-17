@@ -12,6 +12,11 @@ import {
   Avatar,
   Fade,
   Grow,
+  IconButton,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material';
 import { Review } from '@/types/review';
 import { HistoryFilters } from './HistoryFilters';
@@ -19,6 +24,8 @@ import { format } from 'date-fns';
 import HistoryIcon from '@mui/icons-material/History';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import CodeIcon from '@mui/icons-material/Code';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import DownloadIcon from '@mui/icons-material/Download';
 
 export function HistoryTable() {
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -33,6 +40,26 @@ export function HistoryTable() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [model, setModel] = useState('');
+
+  // Actions Menu State
+  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedReview, setSelectedReview] = useState<Review | null>(null);
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLButtonElement>, review: Review) => {
+    setMenuAnchorEl(event.currentTarget);
+    setSelectedReview(review);
+  };
+
+  const handleMenuClose = () => {
+    setMenuAnchorEl(null);
+    setSelectedReview(null);
+  };
+
+  const handleDownload = (filename: string) => {
+    if (!selectedReview) return;
+    window.open(`/api/review/${selectedReview.id}/files/${filename}`, '_blank');
+    handleMenuClose();
+  };
 
   const fetchReviews = async () => {
     setLoading(true);
@@ -203,6 +230,17 @@ export function HistoryTable() {
           </Typography>
         );
       },
+    },
+    {
+      field: 'actions',
+      headerName: '',
+      width: 50,
+      sortable: false,
+      renderCell: (params) => (
+        <IconButton size="small" onClick={(e) => handleMenuOpen(e, params.row)}>
+          <MoreVertIcon fontSize="small" />
+        </IconButton>
+      ),
     },
   ];
 
@@ -390,6 +428,51 @@ export function HistoryTable() {
           </Box>
         </Card>
       </Grow>
+      
+      <Menu
+        anchorEl={menuAnchorEl}
+        open={Boolean(menuAnchorEl)}
+        onClose={handleMenuClose}
+        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+      >
+        <MenuItem onClick={() => handleDownload('pr.json')}>
+          <ListItemIcon>
+            <CodeIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>PR Data (JSON)</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => handleDownload('prompt.txt')}>
+          <ListItemIcon>
+            <DownloadIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Full Prompt (TXT)</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => handleDownload('system-prompt.txt')}>
+          <ListItemIcon>
+            <DownloadIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>System Prompt (TXT)</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => handleDownload('req-prompt.json')}>
+          <ListItemIcon>
+            <DownloadIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Request Metadata (JSON)</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => handleDownload('res-ai.json')}>
+          <ListItemIcon>
+            <DownloadIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>AI Response (JSON)</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => handleDownload('jira.json')}>
+          <ListItemIcon>
+            <DownloadIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Jira Data (JSON)</ListItemText>
+        </MenuItem>
+      </Menu>
     </Box>
   );
 }

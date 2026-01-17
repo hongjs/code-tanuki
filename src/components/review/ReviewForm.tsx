@@ -45,6 +45,7 @@ export function ReviewForm() {
   const [successMessage, setSuccessMessage] = useState<string>();
   const [prTitle, setPrTitle] = useState<string>();
   const [prTitleLoading, setPrTitleLoading] = useState(false);
+  const [reviewId, setReviewId] = useState<string>();
 
   const [prTitleError, setPrTitleError] = useState<string>();
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -174,6 +175,7 @@ export function ReviewForm() {
     setPrTitle(undefined);
     setPrTitleError(undefined);
     setStatus('idle');
+    setReviewId(undefined);
     clearProgressTimeouts();
     if (prUrlDebounceRef.current) {
       clearTimeout(prUrlDebounceRef.current);
@@ -252,6 +254,7 @@ export function ReviewForm() {
       if (data.preview) {
         setPreviewComments(data.comments);
         setPreviewDiff(data.diff || '');
+        setReviewId(data.reviewId);
         setPreviewOpen(true);
         setStatus('approval'); // Update status to approval
       } else {
@@ -284,6 +287,7 @@ export function ReviewForm() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          reviewId,
           prUrl,
           jiraTicketId: jiraTicketId || undefined,
           modelId,
@@ -603,7 +607,7 @@ export function ReviewForm() {
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Your code and data are processed <strong>in-memory only</strong> and transmitted directly to the AI provider.
-                  CodeOwl <strong>does not store</strong> any of your code, PR details, or API keys on its servers.
+                  CodeOwl <strong>does not store</strong> any of your code and PR details on its servers.
                 </Typography>
               </Box>
             </Alert>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { GitHubClient } from '@/lib/api/github';
 import { JiraClient } from '@/lib/api/jira';
 import { getStorage } from '@/lib/storage';
@@ -98,8 +98,38 @@ export async function POST(request: NextRequest) {
       }
 
       // 7. Save review to storage
+      const reviewId = validatedRequest.reviewId || uuidv7();
+      const storage = getStorage();
+      
+      let finalSteps = steps;
+      let previousRetryCount = 0;
+      let previousDuration = 0;
+
+      if (validatedRequest.reviewId) {
+        try {
+           const previousReview = await storage.getReview(reviewId);
+           if (previousReview) {
+             finalSteps = {
+               ...previousReview.metadata.steps,
+               ...steps,
+                // Preserve AI review stats if they exist
+               aiReview: previousReview.metadata.steps.aiReview.success 
+                  ? previousReview.metadata.steps.aiReview 
+                  : steps.aiReview
+             };
+             previousRetryCount = previousReview.metadata.retryCount;
+             // Calculate partial duration? Or just use new duration logic which is currently startTime based?
+             // Since submit is a separate process, the "duration" metadata usually means "end-to-end" or "processing time".
+             // Let's stick to current process duration for this record, or sum them up?
+             // For simplicity, let's keep the submit process duration but acknowledge the steps.
+           }
+        } catch (e) {
+          logger.warn(`Could not fetch previous review ${reviewId} for merging stats`, { error: e });
+        }
+      }
+
       const review: Review = {
-        id: uuidv4(),
+        id: reviewId,
         timestamp: new Date().toISOString(),
         prUrl: validatedRequest.prUrl,
         prNumber,
@@ -111,12 +141,10 @@ export async function POST(request: NextRequest) {
         comments: validatedRequest.comments,
         metadata: {
           durationMs: Date.now() - startTime,
-          retryCount: 0,
-          steps,
+          retryCount: previousRetryCount, // currently 0 in submit route, but maybe preserve?
+          steps: finalSteps,
         },
       };
-
-      const storage = getStorage();
       await storage.saveReview(review);
 
       logger.info('Successfully submitted approved review', {

@@ -1,87 +1,39 @@
 import { JiraTicket } from '@/types/jira';
+import { annotateDiffWithLineNumbers } from '@/lib/utils/diff';
 
-export const SYSTEM_PROMPT = `You are an expert code reviewer. Review PR changes against requirements.
+export const SYSTEM_PROMPT = `You are a senior software engineer doing a professional code review.
 
-Focus on:
-1. Business requirements compliance (from Jira ticket)
-2. Potential bugs and edge cases
-3. Technical specification adherence
-4. Code duplication
-5. Performance issues
+Review objectives:
+1. Verify code matches the user story and acceptance criteria
+2. Identify bugs, edge cases, and logic flaws
+3. Check security, performance, and scalability risks
+4. Review code style, readability, and maintainability
+5. Suggest concrete improvements with examples
 
 Format: Inline comments with file path, line number, severity (critical/warning/suggestion).
 Be constructive and specific.
 
-IMPORTANT - Line Number Format:
-You will receive a git diff in unified diff format. You MUST carefully track line numbers.
+IMPORTANT - Line Numbers Are Pre-Calculated:
+The diff you receive has line numbers already annotated. Look for these markers:
+- [LINE N] - This line exists at line N in the new file. Use N for your comment.
+- [REMOVED] - This line was deleted and doesn't exist in the new file. Don't comment on these.
+- [HUNK] - Hunk header showing which section changed.
+- [FILE] - File header showing which file changed.
 
-Each hunk starts with a header like: @@ -oldStart,oldCount +newStart,newCount @@
-The number after the + sign is where the NEW file section starts.
+EXAMPLE:
+[FILE] diff --git a/src/App.tsx b/src/App.tsx
+[HUNK] @@ -10,4 +15,6 @@
+[LINE 15]  import React from 'react';
+[LINE 16]  import { Button } from 'components';
+[REMOVED] -import { OldThing } from 'old';
+[LINE 17] +import { NewThing } from 'new';
+[LINE 18] +import { AnotherNew } from 'another';
+[LINE 19]  function MyComponent() {
 
-How to count line numbers through a diff:
-1. When you see a hunk header "@@ -X,Y +N,M @@", the next line will be line N in the new file
-2. As you read through the hunk:
-   - Lines starting with "+" (added): These are NEW file lines - increment new line counter
-   - Lines starting with "-" (removed): These are OLD file lines only - do NOT increment new line counter
-   - Lines starting with " " (context/unchanged): increment new line counter
-   - Hunk headers themselves are not counted
+To comment on "import { NewThing }", use line: 17 (the number shown in [LINE 17])
+To comment on "import { AnotherNew }", use line: 18 (the number shown in [LINE 18])
 
-EXAMPLE DIFF:
---------------
-@@ -10,4 +15,6 @@
- import React from 'react';              // new line 15 (context)
- import { Button } from 'components';    // new line 16 (context)
--import { OldThing } from 'old';         // (removed, no new line number)
-+import { NewThing } from 'new';         // new line 17 (added)
-+import { AnotherNew } from 'another';   // new line 18 (added)
-
- function MyComponent() {                // new line 19 (context)
---------------
-
-In this example:
-- To comment on "import { NewThing }", use line: 17
-- To comment on "import { AnotherNew }", use line: 18
-- To comment on "function MyComponent()", use line: 19
-
-When you see code you want to comment on, count carefully from the hunk start!
-
-CRITICAL - Line Number Accuracy (MOST IMPORTANT):
-Line number errors are the #1 issue. Follow this EXACT process for EVERY comment:
-
-STEP-BY-STEP LINE COUNTING PROCESS:
-1. Find the CODE you want to comment on (e.g., ".pdf-export { color: red; }")
-2. Scroll UP to find the CLOSEST hunk header @@ -X,Y +N,M @@
-3. Write down the number after the + sign (this is your STARTING line number)
-4. Starting AFTER the hunk header, count DOWN line by line:
-   - See a line starting with "+" ? → COUNT IT (increment counter)
-   - See a line starting with " " (space) ? → COUNT IT (increment counter)
-   - See a line starting with "-" ? → SKIP IT (do NOT increment counter)
-5. When you reach your target code, STOP - that's your line number!
-
-EXAMPLE WALKTHROUGH:
-Given this diff:
---------------
-@@ -10,4 +113,8 @@
- .table { width: 100%; }
-+.pdf-export { color: red; }
-+.pdf-export #tb { border: 1px; }
- .footer { margin: 0; }
---------------
-
-To comment on ".pdf-export { color: red; }":
-- Step 1: Found the code ".pdf-export { color: red; }"
-- Step 2: Hunk header is "@@ -10,4 +113,8 @@"
-- Step 3: Starting line = 113 (number after +)
-- Step 4: Count from line 113:
-  * " .table { width: 100%; }" → starts with space → line 113
-  * "+.pdf-export { color: red; }" → starts with + → line 114 ← THIS IS IT!
-- Step 5: Answer = 114
-
-VERIFICATION:
-After calculating each line number, verify by checking:
-- Is my line number AFTER the starting line from the hunk header? (YES = good)
-- Did I skip all "-" lines? (YES = good)
-- Does the code at my line number match what I want to comment on? (YES = good)
+CRITICAL: Always use the exact line number shown in the [LINE N] marker. Never calculate line numbers yourself.
 
 Your response MUST be valid JSON in this exact format:
 {
@@ -107,6 +59,9 @@ export function buildReviewPrompt(
   jiraTicket?: JiraTicket,
   additionalPrompt?: string
 ): string {
+  // Annotate the diff with line numbers for accurate AI comments
+  const annotatedDiff = annotateDiffWithLineNumbers(diff);
+
   let prompt = `# Pull Request Review
 
 ## PR Details
@@ -135,10 +90,10 @@ ${additionalPrompt}
 `;
   }
 
-  prompt += `## Code Changes
-${diff}
+  prompt += `## Code Changes (with line numbers annotated)
+${annotatedDiff}
 
-Please provide your review as structured JSON.`;
+Please provide your review as structured JSON. Use the exact line numbers shown in [LINE N] markers.`;
 
   return prompt;
 }

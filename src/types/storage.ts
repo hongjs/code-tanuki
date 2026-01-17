@@ -3,6 +3,7 @@ import { Review } from './review';
 export interface IStorageAdapter {
   // Review operations
   saveReview(review: Review): Promise<void>;
+  saveArtifact(reviewId: string, filename: string, content: any): Promise<void>;
   getReview(id: string): Promise<Review | null>;
   getAllReviews(filters?: ReviewFilters): Promise<PaginatedReviews>;
   deleteReview(id: string): Promise<void>;

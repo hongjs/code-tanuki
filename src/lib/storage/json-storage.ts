@@ -5,29 +5,41 @@ import * as path from 'path';
 import { logger } from '../logger/winston';
 
 export class JsonStorageAdapter implements IStorageAdapter {
+  private baseDir: string;
   private dataDir: string;
   private allReviewsFile: string;
 
-  constructor(dataDir: string = './data/reviews') {
-    this.dataDir = dataDir;
-    this.allReviewsFile = path.join(dataDir, 'all-reviews.json');
+  constructor(baseDir: string = './data/reviews') {
+    this.baseDir = baseDir;
+    this.dataDir = path.join(baseDir, 'data');
+    this.allReviewsFile = path.join(baseDir, 'all-reviews.json');
   }
 
   async saveReview(review: Review): Promise<void> {
     try {
-      // Ensure data directory exists
-      await fs.mkdir(this.dataDir, { recursive: true });
+      // Ensure data directories exist
+      const reviewDir = path.join(this.dataDir, review.id);
+      await fs.mkdir(reviewDir, { recursive: true });
 
-      // 1. Save individual file
-      const filename = `${review.timestamp.replace(/:/g, '-')}-${review.prNumber}.json`;
-      const individualFilePath = path.join(this.dataDir, filename);
-      await fs.writeFile(individualFilePath, JSON.stringify(review, null, 2));
+      // 1. Save metadata to item.json
+      await fs.writeFile(
+        path.join(reviewDir, 'item.json'), 
+        JSON.stringify(review, null, 2)
+      );
 
-      logger.info(`Saved individual review file: ${filename}`);
+      logger.info(`Saved review item.json for ID: ${review.id}`);
 
-      // 2. Append to all-reviews.json
-      const allReviews = await this.loadAllReviews();
-      allReviews.push(review);
+      // 2. Update all-reviews.json (Index)
+      // We load all, check if exists (update) or push new
+      let allReviews = await this.loadAllReviews();
+      const existingIndex = allReviews.findIndex(r => r.id === review.id);
+      
+      if (existingIndex >= 0) {
+        allReviews[existingIndex] = review;
+      } else {
+        allReviews.push(review);
+      }
+
       await fs.writeFile(this.allReviewsFile, JSON.stringify(allReviews, null, 2));
 
       logger.info(`Updated all-reviews.json with review ID: ${review.id}`);
@@ -40,10 +52,39 @@ export class JsonStorageAdapter implements IStorageAdapter {
     }
   }
 
+  async saveArtifact(reviewId: string, filename: string, content: any): Promise<void> {
+    try {
+      const reviewDir = path.join(this.dataDir, reviewId);
+      await fs.mkdir(reviewDir, { recursive: true });
+
+      const filePath = path.join(reviewDir, filename);
+      const fileContent = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
+      
+      await fs.writeFile(filePath, fileContent);
+      logger.info(`Saved artifact ${filename} for review ${reviewId}`);
+    } catch (error) {
+      logger.error(`Failed to save artifact ${filename}`, {
+        reviewId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      // Don't throw, just log error for artifacts to avoid breaking main flow
+    }
+  }
+
   async getReview(id: string): Promise<Review | null> {
     try {
-      const allReviews = await this.loadAllReviews();
-      return allReviews.find((r) => r.id === id) || null;
+      // Try to load from specific folder first (source of truth)
+      const reviewDir = path.join(this.dataDir, id);
+      const itemPath = path.join(reviewDir, 'item.json');
+      
+      try {
+        const data = await fs.readFile(itemPath, 'utf-8');
+        return JSON.parse(data) as Review;
+      } catch (e) {
+        // Fallback to all-reviews if specific file missing (legacy support or inconsistency)
+        const allReviews = await this.loadAllReviews();
+        return allReviews.find((r) => r.id === id) || null;
+      }
     } catch (error) {
       logger.error('Failed to get review', {
         error: error instanceof Error ? error.message : String(error),
@@ -109,7 +150,7 @@ export class JsonStorageAdapter implements IStorageAdapter {
 
   async deleteReview(id: string): Promise<void> {
     try {
-      // Remove from all-reviews.json
+      // 1. Remove from all-reviews.json
       const allReviews = await this.loadAllReviews();
       const filteredReviews = allReviews.filter((r) => r.id !== id);
 
@@ -120,9 +161,15 @@ export class JsonStorageAdapter implements IStorageAdapter {
 
       await fs.writeFile(this.allReviewsFile, JSON.stringify(filteredReviews, null, 2));
 
-      logger.info(`Deleted review from all-reviews.json: ${id}`);
+      // 2. Delete review directory
+      const reviewDir = path.join(this.dataDir, id);
+      try {
+        await fs.rm(reviewDir, { recursive: true, force: true });
+        logger.info(`Deleted review directory: ${id}`);
+      } catch (e) {
+        logger.warn(`Failed to delete review directory ${id}`, { error: e });
+      }
 
-      // Note: Individual files are not deleted for data retention
     } catch (error) {
       logger.error('Failed to delete review', {
         error: error instanceof Error ? error.message : String(error),
@@ -161,6 +208,7 @@ export class JsonStorageAdapter implements IStorageAdapter {
   async healthCheck(): Promise<boolean> {
     try {
       // Check if data directory exists and is writable
+      await fs.mkdir(this.dataDir, { recursive: true });
       await fs.access(this.dataDir, fs.constants.W_OK);
 
       // Try to load all reviews (checks file readability)
@@ -177,6 +225,7 @@ export class JsonStorageAdapter implements IStorageAdapter {
 
   private async loadAllReviews(): Promise<Review[]> {
     try {
+      await fs.mkdir(path.dirname(this.allReviewsFile), { recursive: true });
       const data = await fs.readFile(this.allReviewsFile, 'utf-8');
       return JSON.parse(data) as Review[];
     } catch (error: unknown) {

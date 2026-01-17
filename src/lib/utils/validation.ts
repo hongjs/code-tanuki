@@ -26,6 +26,7 @@ export const submitReviewSchema = z.object({
       severity: z.enum(['critical', 'warning', 'suggestion']),
     })
   ),
+  reviewId: z.string().uuid().optional(),
 });
 
 export type ReviewRequest = z.infer<typeof reviewRequestSchema>;

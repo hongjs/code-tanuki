@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { GitHubClient } from '@/lib/api/github';
 import { JiraClient } from '@/lib/api/jira';
 import { ClaudeClient } from '@/lib/api/claude';
@@ -13,9 +13,11 @@ import { Review, ReviewMetadata, StepResult } from '@/types/review';
 import { DuplicateReviewError } from '@/types/errors';
 import { getProviderFromModelId } from '@/lib/constants/models';
 import { AIReviewResponse } from '@/types/ai';
+import { SYSTEM_PROMPT, buildReviewPrompt } from '@/lib/constants/prompts';
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
+  const reviewId = uuidv7();
   let retryCount = 0;
 
   const steps: ReviewMetadata['steps'] = {
@@ -30,6 +32,7 @@ export async function POST(request: NextRequest) {
     const validatedRequest = validateReviewRequest(body);
 
     logger.info('Starting PR review', {
+      reviewId,
       prUrl: validatedRequest.prUrl,
       modelId: validatedRequest.modelId,
     });
@@ -62,6 +65,8 @@ export async function POST(request: NextRequest) {
       const githubToken = process.env.GITHUB_TOKEN!;
       const githubClient = new GitHubClient(githubToken);
       const pr = await githubClient.fetchPR(owner, repo, prNumber);
+      
+      await storage.saveArtifact(reviewId, 'pr.json', pr);
 
       steps.fetchGitHub = {
         success: true,
@@ -89,6 +94,7 @@ export async function POST(request: NextRequest) {
           const jiraClient = new JiraClient(jiraBaseUrl, jiraEmail, jiraToken);
 
           jiraTicket = await jiraClient.fetchTicket(jiraTicketId);
+          await storage.saveArtifact(reviewId, 'jira.json', jiraTicket);
 
           steps.fetchJira = {
             success: true,
@@ -106,6 +112,35 @@ export async function POST(request: NextRequest) {
           };
         }
       }
+
+      // Build and log the prompt that will be sent to AI
+      const userPrompt = buildReviewPrompt(
+        pr.diff,
+        pr.title,
+        pr.body,
+        jiraTicket,
+        validatedRequest.additionalPrompt
+      );
+
+      // Save the actual prompt text sent to AI
+      await storage.saveArtifact(reviewId, 'prompt.txt', userPrompt);
+
+      // Save the system prompt
+      await storage.saveArtifact(reviewId, 'system-prompt.txt', SYSTEM_PROMPT);
+
+      // Also save metadata about the review request
+      await storage.saveArtifact(reviewId, 'req-prompt.json', {
+        prTitle: pr.title,
+        prBody: pr.body,
+        jiraTicketId,
+        jiraTicketSummary: jiraTicket?.summary,
+        jiraTicketDescription: jiraTicket?.description,
+        additionalPrompt: validatedRequest.additionalPrompt,
+        modelId: validatedRequest.modelId,
+        diffSize: pr.diff.length,
+        promptSize: userPrompt.length,
+        timestamp: new Date().toISOString()
+      });
 
       // 7. Get AI review from Claude or Gemini
       const aiReviewStepStart = Date.now();
@@ -146,6 +181,8 @@ export async function POST(request: NextRequest) {
           });
         }
 
+        await storage.saveArtifact(reviewId, 'res-ai.json', reviewResponse);
+
         steps.aiReview = {
           success: true,
           durationMs: Date.now() - aiReviewStepStart,
@@ -154,13 +191,37 @@ export async function POST(request: NextRequest) {
         // If previewOnly mode, return comments for user approval
         if (validatedRequest.previewOnly) {
           logger.info('Returning preview of AI review', {
+            reviewId,
             prNumber,
             commentsCount: reviewResponse.comments.length,
           });
 
+          // Save preview metadata locally
+          const previewReview: Review = {
+            id: reviewId,
+            timestamp: new Date().toISOString(),
+            prUrl: validatedRequest.prUrl,
+            prNumber,
+            repository,
+            prTitle: pr.title,
+            jiraTicketId,
+            modelId: validatedRequest.modelId,
+            additionalPrompt: validatedRequest.additionalPrompt,
+            status: 'success',
+            comments: reviewResponse.comments,
+            metadata: {
+              durationMs: Date.now() - startTime,
+              retryCount,
+              steps,
+            },
+          };
+          await storage.saveReview(previewReview);
+
           return NextResponse.json({
             success: true,
             preview: true,
+            reviewId,
+
             prTitle: pr.title,
             prUrl: validatedRequest.prUrl,
             jiraTicketId,
@@ -221,7 +282,7 @@ export async function POST(request: NextRequest) {
 
           // 10. Save review to storage
           const review: Review = {
-            id: uuidv4(),
+            id: reviewId,
             timestamp: new Date().toISOString(),
             prUrl: validatedRequest.prUrl,
             prNumber,
@@ -293,12 +354,12 @@ export async function POST(request: NextRequest) {
       const { owner, repo, number: prNumber } = parseGitHubPRUrl(prUrl);
 
       const failedReview: Review = {
-        id: uuidv4(),
+        id: reviewId,
         timestamp: new Date().toISOString(),
         prUrl,
         prNumber,
         repository: `${owner}/${repo}`,
-        prTitle: '',
+        prTitle: '', // We might miss title if PR fetch failed
         modelId,
         status: 'error',
         comments: [],
