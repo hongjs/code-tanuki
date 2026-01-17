@@ -17,6 +17,7 @@ import {
   Stack,
   Chip,
   CircularProgress,
+  Grid,
 } from '@mui/material';
 import { ModelSelector } from './ModelSelector';
 import { ReviewProgress } from './ReviewProgress';
@@ -37,8 +38,9 @@ export function ReviewForm() {
   const [prUrl, setPrUrl] = useState('');
   const [jiraTicketId, setJiraTicketId] = useState('');
   const [additionalPrompt, setAdditionalPrompt] = useState('');
+  const [maxTokens, setMaxTokens] = useState<string>('');
   const [modelId, setModelId] = useState(
-    process.env.NEXT_PUBLIC_CLAUDE_MODEL_DEFAULT || 'claude-haiku-4-5-20251001'
+    process.env.NEXT_PUBLIC_CLAUDE_MODEL_DEFAULT || 'claude-opus-4-5-20251101'
   );
   const [status, setStatus] = useState<ReviewStatus>('idle');
   const [error, setError] = useState<string>();
@@ -107,7 +109,7 @@ export function ReviewForm() {
   };
 
   // Clear error when user modifies inputs
-  const handleInputChange = (field: 'prUrl' | 'jiraTicketId' | 'additionalPrompt', value: string) => {
+  const handleInputChange = (field: 'prUrl' | 'jiraTicketId' | 'additionalPrompt' | 'maxTokens', value: string) => {
     if (error) {
       setError(undefined);
     }
@@ -129,6 +131,12 @@ export function ReviewForm() {
         break;
       case 'additionalPrompt':
         setAdditionalPrompt(value);
+        break;
+      case 'maxTokens':
+        // Only allow numeric input
+        if (value === '' || /^\d+$/.test(value)) {
+          setMaxTokens(value);
+        }
         break;
     }
   };
@@ -170,6 +178,7 @@ export function ReviewForm() {
     setPrUrl('');
     setJiraTicketId('');
     setAdditionalPrompt('');
+    setMaxTokens('');
     setError(undefined);
     setSuccessMessage(undefined);
     setPrTitle(undefined);
@@ -217,6 +226,7 @@ export function ReviewForm() {
           prUrl,
           jiraTicketId: jiraTicketId || undefined,
           additionalPrompt: additionalPrompt || undefined,
+          maxTokens: maxTokens ? parseInt(maxTokens) : undefined,
           modelId,
           previewOnly: true,
         }),
@@ -267,6 +277,7 @@ export function ReviewForm() {
           setPrUrl('');
           setJiraTicketId('');
           setAdditionalPrompt('');
+          setMaxTokens('');
           setStatus('idle');
         }, 5000);
       }
@@ -310,6 +321,7 @@ export function ReviewForm() {
         setPrUrl('');
         setJiraTicketId('');
         setAdditionalPrompt('');
+        setMaxTokens('');
         setStatus('idle');
         setSuccessMessage(undefined);
       }, 5000);
@@ -513,8 +525,8 @@ export function ReviewForm() {
                 disabled={status !== 'idle' || !config.hasJiraConfig}
                 helperText={
                   !config.hasJiraConfig && !configLoading
-                    ? 'Jira integration not configured. Set JIRA_BASE_URL, JIRA_EMAIL, and JIRA_API_TOKEN in .env'
-                    : 'Leave empty to auto-extract from PR title'
+                    ? 'Jira integration not configured'
+                    : 'Leave empty to auto-extract'
                 }
               />
 
@@ -530,12 +542,28 @@ export function ReviewForm() {
                 helperText="Max 2000 characters"
               />
 
-              <ModelSelector
-                value={modelId}
-                onChange={setModelId}
-                config={config}
-                configLoading={configLoading}
-              />
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={8}>
+                  <ModelSelector
+                    value={modelId}
+                    onChange={setModelId}
+                    config={config}
+                    configLoading={configLoading}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    label="Max Tokens"
+                    placeholder="e.g. 4096"
+                    value={maxTokens}
+                    onChange={(e) => handleInputChange('maxTokens', e.target.value)}
+                    disabled={status !== 'idle'}
+                    helperText="Output limit"
+                    fullWidth
+                    inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
+                  />
+                </Grid>
+              </Grid>
 
               <Stack direction="row" spacing={2}>
                 <Button

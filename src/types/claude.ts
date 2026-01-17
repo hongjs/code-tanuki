@@ -7,6 +7,7 @@ export interface ClaudeReviewRequest {
   prBody: string;
   jiraTicket?: JiraTicket;
   additionalPrompt?: string;
+  maxTokens?: number;
   modelId: string;
 }
 

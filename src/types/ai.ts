@@ -9,8 +9,9 @@ export interface AIReviewRequest {
   prBody: string;
   jiraTicket?: JiraTicket;
   additionalPrompt?: string;
+  maxTokens?: number;
   modelId: string;
-  provider: AIProvider;
+  provider?: AIProvider;
 }
 
 export interface AIReviewResponse {

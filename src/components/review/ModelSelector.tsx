@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { FormControl, InputLabel, Select, MenuItem, FormHelperText, Box, Chip, ListSubheader, Divider, Alert } from '@mui/material';
+import { FormControl, InputLabel, Select, MenuItem, FormHelperText, Box, Chip, ListSubheader, Divider, Alert, Typography } from '@mui/material';
 import { ALL_AI_MODELS, CLAUDE_MODELS, GEMINI_MODELS } from '@/lib/constants/models';
 import { AppConfig } from '@/types/ai';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
@@ -101,6 +101,44 @@ export function ModelSelector({ value, onChange, config, configLoading }: ModelS
           label="AI Model"
           onChange={(e) => onChange(e.target.value)}
           disabled={!hasAnyApiKey}
+          renderValue={(selected) => {
+            const model = ALL_AI_MODELS.find((m) => m.id === selected);
+            if (!model) return selected;
+            const Icon = modelIcons[model.id];
+            
+            return (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Box
+                  sx={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: '6px',
+                    background: modelGradients[model.id],
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                  }}
+                >
+                  {Icon && <Icon sx={{ fontSize: 18 }} />}
+                </Box>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {model.name}
+                </Typography>
+                <Chip
+                  label={`${model.maxTokens} tokens`}
+                  size="small"
+                  sx={{
+                    ml: 'auto',
+                    height: 20,
+                    fontSize: '0.65rem',
+                    background: 'rgba(0,0,0,0.05)',
+                    display: { xs: 'none', sm: 'flex' }
+                  }}
+                />
+              </Box>
+            );
+          }}
         >
           {/* Claude Models Section */}
           <ListSubheader

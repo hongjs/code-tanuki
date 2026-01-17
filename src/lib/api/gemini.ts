@@ -36,7 +36,7 @@ export class GeminiClient {
 
           logger.info(`User prompt:`, userPrompt.substring(0, 100));
 
-          const maxTokens = parseInt(process.env.GEMINI_MAX_TOKENS || '8192');
+          const maxTokens = request.maxTokens || parseInt(process.env.GEMINI_MAX_TOKENS || '8192');
           const temperature = parseFloat(process.env.GEMINI_TEMPERATURE || '0.3');
 
           const model = this.client.getGenerativeModel({

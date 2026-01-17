@@ -7,6 +7,7 @@ export const reviewRequestSchema = z.object({
     .optional()
     .transform((val) => (val === '' ? undefined : val)),
   additionalPrompt: z.string().max(2000).optional(),
+  maxTokens: z.number().int().positive().optional(),
   modelId: z.string().min(1),
   previewOnly: z.boolean().optional().default(false),
 });
