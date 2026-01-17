@@ -3,7 +3,7 @@ import './globals.css';
 import { Providers } from './providers';
 
 export const metadata: Metadata = {
-  title: 'CodeOwl - AI-Powered PR Review',
+  title: 'Code Tanuki - AI-Powered PR Review',
   description: 'AI-powered PR review tool for dev managers using Claude AI & Google Gemini'
 };
 

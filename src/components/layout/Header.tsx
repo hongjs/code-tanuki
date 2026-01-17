@@ -12,7 +12,7 @@ export function Header() {
     <AppBar position="static">
       <Container maxWidth="xl">
         <Toolbar disableGutters>
-          <CodeIcon sx={{ mr: 1 }} />
+          <img src="/icon.png" alt="Code Tanuki Logo" width={32} height={32} style={{ marginRight: 8, borderRadius: '4px' }} />
           <Typography
             variant="h6"
             noWrap
@@ -20,7 +20,7 @@ export function Header() {
             sx={{ flexGrow: 1, fontWeight: 700, cursor: 'pointer' }}
             onClick={() => router.push('/review')}
           >
-            CodeOwl
+            Code Tanuki
           </Typography>
           <Button
             color="inherit"

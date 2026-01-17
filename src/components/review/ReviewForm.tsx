@@ -351,7 +351,7 @@ export function ReviewForm() {
                 boxShadow: '0 8px 20px rgba(102, 126, 234, 0.4)',
               }}
             >
-              <AutoAwesomeIcon sx={{ fontSize: 24 }} />
+              <img src="/icon.png" alt="Code Tanuki" width={32} height={32} />
             </Avatar>
             <Box>
               <Typography

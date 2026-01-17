@@ -77,11 +77,11 @@ export function Sidebar() {
             height: 48,
           }}
         >
-          <CodeIcon sx={{ fontSize: 24 }} />
+          <img src="/icon.png" alt="Code Tanuki" width={24} height={24} />
         </Avatar>
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.5px' }}>
-            CodeOwl
+            Code Tanuki
           </Typography>
           <Typography variant="caption" sx={{ opacity: 0.8 }}>
             AI-Powered Review
@@ -156,7 +156,7 @@ export function Sidebar() {
           Version 1.0.0
         </Typography>
         <Typography variant="caption" sx={{ opacity: 0.7 }}>
-          © 2024 CodeOwl
+          © 2024 Code Tanuki
         </Typography>
       </Box>
     </Box>

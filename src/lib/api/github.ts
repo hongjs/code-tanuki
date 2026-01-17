@@ -48,6 +48,21 @@ export class GitHubClient {
                 .filter((line) => line && !line.startsWith('#'));
               logger.info(`Loaded .aiignore patterns`, { count: ignorePatterns.length });
             }
+            
+            // Add default ignores if not present
+            const defaultIgnores = [
+              'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml',
+              '*.png', '*.jpg', '*.jpeg', '*.gif', '*.svg', '*.ico',
+              '*.mp4', '*.mov', '*.webm',
+              'dist/*', 'build/*', '.next/*', 'node_modules/*',
+              '*.min.js', '*.min.css', '*.map'
+            ];
+            
+            for (const pattern of defaultIgnores) {
+              if (!ignorePatterns.includes(pattern)) {
+                ignorePatterns.push(pattern);
+              }
+            }
           } catch (err) {
             logger.warn('Failed to load .aiignore', { error: err });
           }

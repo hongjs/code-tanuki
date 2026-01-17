@@ -320,7 +320,7 @@ export function ReviewPreviewDialog({
                     <SmartToyIcon sx={{ fontSize: 14 }} />
                   </Avatar>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#24292e' }}>
-                    codeowl-ai
+                    codetanuki-ai
                   </Typography>
                   <Typography variant="caption" sx={{ color: '#586069' }}>
                     suggested changes

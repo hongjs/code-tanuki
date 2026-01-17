@@ -18,7 +18,7 @@ const logger = winston.createLogger({
     winston.format.splat(),
     winston.format.json()
   ),
-  defaultMeta: { service: 'codeowl' },
+  defaultMeta: { service: 'codetanuki' },
   transports: [
     // Write all logs to combined.log
     new winston.transports.File({
