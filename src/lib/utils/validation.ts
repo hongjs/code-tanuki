@@ -22,6 +22,7 @@ export const submitReviewSchema = z.object({
     z.object({
       path: z.string(),
       line: z.number(),
+      start_line: z.number().optional(), // For multi-line suggestions
       body: z.string(),
       severity: z.enum(['critical', 'warning', 'suggestion']),
     })

@@ -40,7 +40,7 @@ export class ClaudeClient {
             request.additionalPrompt
           );
 
-          const maxTokens = parseInt(process.env.CLAUDE_MAX_TOKENS || '4096');
+          const maxTokens = parseInt(process.env.CLAUDE_MAX_TOKENS || '8192');
           const temperature = parseFloat(process.env.CLAUDE_TEMPERATURE || '0.3');
 
           const response = await this.client.messages.create({

@@ -16,6 +16,9 @@ export interface GitHubPR {
 export interface GitHubReviewComment {
   path: string;
   line: number;
+  start_line?: number; // For multi-line comments/suggestions
+  side?: 'LEFT' | 'RIGHT'; // RIGHT for new code, LEFT for old code
+  start_side?: 'LEFT' | 'RIGHT'; // For multi-line spanning diff sides
   body: string;
 }
 

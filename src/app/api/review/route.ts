@@ -10,7 +10,6 @@ import { validateReviewRequest } from '@/lib/utils/validation';
 import { extractJiraTicketFromTitle } from '@/lib/constants/regex';
 import { logger } from '@/lib/logger/winston';
 import { Review, ReviewMetadata, StepResult } from '@/types/review';
-import { DuplicateReviewError } from '@/types/errors';
 import { getProviderFromModelId } from '@/lib/constants/models';
 import { AIReviewResponse } from '@/types/ai';
 import { SYSTEM_PROMPT, buildReviewPrompt } from '@/lib/constants/prompts';
@@ -41,25 +40,9 @@ export async function POST(request: NextRequest) {
     const { owner, repo, number: prNumber } = parseGitHubPRUrl(validatedRequest.prUrl);
     const repository = `${owner}/${repo}`;
 
-    // 3. Check for duplicates
     const storage = getStorage();
-    const duplicateCheckMinutes = parseInt(process.env.DUPLICATE_CHECK_MINUTES || '5');
-    const duplicate = await storage.checkDuplicate(prNumber, duplicateCheckMinutes);
 
-    if (duplicate) {
-      logger.warn('Duplicate review detected', {
-        prNumber,
-        existingReviewId: duplicate.id,
-      });
-      throw new DuplicateReviewError(
-        `Review for PR #${prNumber} was created ${Math.round(
-          (Date.now() - new Date(duplicate.timestamp).getTime()) / 1000
-        )} seconds ago`,
-        { existingReviewId: duplicate.id }
-      );
-    }
-
-    // 4. Fetch GitHub PR
+    // 3. Fetch GitHub PR
     const githubStepStart = Date.now();
     try {
       const githubToken = process.env.GITHUB_TOKEN!;
@@ -377,17 +360,6 @@ export async function POST(request: NextRequest) {
       logger.error('Failed to save error review', {
         error: saveError instanceof Error ? saveError.message : String(saveError),
       });
-    }
-
-    if (error instanceof DuplicateReviewError) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: error.message,
-          code: error.code,
-        },
-        { status: error.statusCode }
-      );
     }
 
     return NextResponse.json(

@@ -161,22 +161,38 @@ export class GitHubClient {
             const badge = severityEmoji[comment.severity];
             const body = `${badge} **${comment.severity.toUpperCase()}**\n\n${comment.body}`;
 
-            return {
+            const result: GitHubReviewComment = {
               path: comment.path,
               line: comment.line,
+              side: 'RIGHT', // Comment on new code side
               body,
             };
+
+            // Add start_line for multi-line suggestions
+            if (comment.start_line && comment.start_line < comment.line) {
+              result.start_line = comment.start_line;
+              result.start_side = 'RIGHT';
+            }
+
+            return result;
           });
 
-          // Post review with inline comments
-          await this.octokit.pulls.createReview({
+          // Log the full payload for debugging
+          const requestPayload = {
             owner,
             repo,
             pull_number,
             commit_id,
-            event: 'COMMENT',
+            event: 'COMMENT' as const,
             comments: formattedComments,
+          };
+
+          logger.info('Posting review to GitHub - Full Payload', {
+            payload: JSON.stringify(requestPayload, null, 2),
           });
+
+          // Post review with inline comments
+          await this.octokit.pulls.createReview(requestPayload);
 
           logger.info(`Successfully posted review comments to GitHub`, {
             prNumber: pull_number,

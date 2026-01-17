@@ -17,6 +17,7 @@ export interface Review {
 export interface ReviewComment {
   path: string;
   line: number;
+  start_line?: number; // For multi-line suggestions (GitHub API)
   body: string;
   severity: 'critical' | 'warning' | 'suggestion';
 }
