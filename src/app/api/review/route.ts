@@ -195,6 +195,7 @@ export async function POST(request: NextRequest) {
             metadata: {
               durationMs: Date.now() - startTime,
               retryCount,
+              tokensUsed: reviewResponse.tokensUsed,
               steps,
             },
           };
@@ -279,6 +280,7 @@ export async function POST(request: NextRequest) {
             metadata: {
               durationMs: Date.now() - startTime,
               retryCount,
+              tokensUsed: reviewResponse.tokensUsed,
               steps,
             },
           };

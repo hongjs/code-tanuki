@@ -158,8 +158,18 @@ export class GeminiClient {
             });
           }
 
+          // Add token usage to response if available
+          const usageMetadata = response.usageMetadata;
+          if (usageMetadata) {
+            reviewResponse.tokensUsed = {
+              input: usageMetadata.promptTokenCount || 0,
+              output: usageMetadata.candidatesTokenCount || 0,
+            };
+          }
+
           logger.info(`Successfully received AI review from Gemini`, {
             commentsCount: reviewResponse.comments.length,
+            tokensUsed: reviewResponse.tokensUsed,
           });
 
           return reviewResponse;

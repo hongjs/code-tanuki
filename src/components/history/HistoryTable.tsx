@@ -410,6 +410,10 @@ export function HistoryTable() {
                   disableRowSelectionOnClick
                   sx={{
                     border: 'none',
+                    '& .MuiDataGrid-cell': {
+                      display: 'flex',
+                      alignItems: 'center',
+                    },
                     '& .MuiDataGrid-cell:focus': {
                       outline: 'none',
                     },
@@ -420,6 +424,10 @@ export function HistoryTable() {
                       backgroundColor: '#f8fafc',
                       borderRadius: '8px',
                       mb: 1,
+                    },
+                    '& .MuiDataGrid-columnHeaderTitle': {
+                      display: 'flex',
+                      alignItems: 'center',
                     },
                   }}
                 />

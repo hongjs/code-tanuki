@@ -152,12 +152,15 @@ export class ClaudeClient {
             });
           }
 
+          // Add token usage to response
+          reviewResponse.tokensUsed = {
+            input: response.usage.input_tokens,
+            output: response.usage.output_tokens,
+          };
+
           logger.info(`Successfully received AI review from Claude`, {
             commentsCount: reviewResponse.comments.length,
-            tokensUsed: {
-              input: response.usage.input_tokens,
-              output: response.usage.output_tokens,
-            },
+            tokensUsed: reviewResponse.tokensUsed,
           });
 
           return reviewResponse;

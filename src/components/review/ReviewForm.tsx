@@ -606,8 +606,8 @@ export function ReviewForm() {
                   Data Privacy & Security
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Your code and data are processed <strong>in-memory only</strong> and transmitted directly to the AI provider.
-                  CodeOwl <strong>does not store</strong> any of your code and PR details on its servers.
+                  Your code review data are stored locally on this server for history and debugging purposes.
+                  Data is transmitted securely to your configured AI provider. Review the <strong>History</strong> page to manage stored reviews.
                 </Typography>
               </Box>
             </Alert>

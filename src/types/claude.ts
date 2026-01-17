@@ -12,6 +12,10 @@ export interface ClaudeReviewRequest {
 
 export interface ClaudeReviewResponse {
   comments: ReviewComment[];
+  tokensUsed?: {
+    input: number;
+    output: number;
+  };
 }
 
 export interface ClaudeModel {

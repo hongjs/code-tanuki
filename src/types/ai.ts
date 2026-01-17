@@ -15,6 +15,10 @@ export interface AIReviewRequest {
 
 export interface AIReviewResponse {
   comments: ReviewComment[];
+  tokensUsed?: {
+    input: number;
+    output: number;
+  };
 }
 
 export interface AIModel {

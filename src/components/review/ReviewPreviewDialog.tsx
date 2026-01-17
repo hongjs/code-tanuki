@@ -90,6 +90,39 @@ const severityConfig = {
   },
 };
 
+// Parse suggestion block from comment body
+function parseSuggestion(body: string): { text: string; suggestion: string | null } {
+  const suggestionMatch = body.match(/```suggestion\n([\s\S]*?)```/);
+  if (suggestionMatch) {
+    const textBeforeSuggestion = body.substring(0, body.indexOf('```suggestion')).trim();
+    return {
+      text: textBeforeSuggestion,
+      suggestion: suggestionMatch[1],
+    };
+  }
+  return { text: body, suggestion: null };
+}
+
+// Get original code lines from diff for a given line range
+function getOriginalCodeFromDiff(
+  fileDiff: ParsedFileDiff | undefined,
+  startLine: number | undefined,
+  endLine: number
+): string[] {
+  if (!fileDiff) return [];
+
+  const start = startLine || endLine;
+  const lines: string[] = [];
+
+  for (const line of fileDiff.lines) {
+    if (line.newLine && line.newLine >= start && line.newLine <= endLine) {
+      lines.push(line.content);
+    }
+  }
+
+  return lines;
+}
+
 export function ReviewPreviewDialog({
   open,
   onClose,
@@ -389,9 +422,121 @@ export function ReviewPreviewDialog({
                         {comment.path}
                       </Typography>
                     )}
-                    <Typography variant="body2" sx={{ color: '#24292e', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-                       {comment.body}
-                    </Typography>
+                    {(() => {
+                      const { text, suggestion } = parseSuggestion(comment.body);
+                      const originalLines = getOriginalCodeFromDiff(
+                        fileDiffs[comment.path],
+                        comment.start_line,
+                        comment.line
+                      );
+                      const suggestionLines = suggestion ? suggestion.split('\n').filter((l, i, arr) =>
+                        // Remove last empty line if exists
+                        !(i === arr.length - 1 && l === '')
+                      ) : [];
+                      const startLineNum = comment.start_line || comment.line;
+
+                      return (
+                        <>
+                          {/* Comment text */}
+                          <Typography variant="body2" sx={{ color: '#24292e', lineHeight: 1.6, whiteSpace: 'pre-wrap', mb: suggestion ? 2 : 0 }}>
+                            {text}
+                          </Typography>
+
+                          {/* Suggested change block */}
+                          {suggestion && (
+                            <Box sx={{ border: '1px solid #d0d7de', borderRadius: '6px', overflow: 'hidden', mt: 1 }}>
+                              {/* Header */}
+                              <Box sx={{
+                                bgcolor: '#f6f8fa',
+                                px: 2,
+                                py: 1,
+                                borderBottom: '1px solid #d0d7de',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1
+                              }}>
+                                <Typography variant="caption" sx={{ fontWeight: 600, color: '#24292e' }}>
+                                  Suggested change
+                                </Typography>
+                              </Box>
+
+                              {/* Code diff */}
+                              <Box sx={{ fontFamily: 'monospace', fontSize: '12px' }}>
+                                {/* Removed lines (original code) */}
+                                {originalLines.map((line, idx) => (
+                                  <Box
+                                    key={`removed-${idx}`}
+                                    sx={{
+                                      display: 'flex',
+                                      bgcolor: '#ffebe9',
+                                      borderBottom: '1px solid #ffcecb',
+                                    }}
+                                  >
+                                    <Box sx={{
+                                      width: 50,
+                                      textAlign: 'right',
+                                      pr: 1,
+                                      color: '#cf222e',
+                                      bgcolor: '#ffcecb',
+                                      userSelect: 'none',
+                                      borderRight: '1px solid #ffcecb'
+                                    }}>
+                                      {startLineNum + idx}
+                                    </Box>
+                                    <Box sx={{
+                                      width: 20,
+                                      textAlign: 'center',
+                                      color: '#cf222e',
+                                      fontWeight: 'bold'
+                                    }}>
+                                      -
+                                    </Box>
+                                    <Box sx={{ px: 1, flex: 1, color: '#24292e' }}>
+                                      {line}
+                                    </Box>
+                                  </Box>
+                                ))}
+
+                                {/* Added lines (suggestion) */}
+                                {suggestionLines.map((line, idx) => (
+                                  <Box
+                                    key={`added-${idx}`}
+                                    sx={{
+                                      display: 'flex',
+                                      bgcolor: '#e6ffec',
+                                      borderBottom: idx < suggestionLines.length - 1 ? '1px solid #aceebb' : 'none',
+                                    }}
+                                  >
+                                    <Box sx={{
+                                      width: 50,
+                                      textAlign: 'right',
+                                      pr: 1,
+                                      color: '#1a7f37',
+                                      bgcolor: '#aceebb',
+                                      userSelect: 'none',
+                                      borderRight: '1px solid #aceebb'
+                                    }}>
+                                      {startLineNum + idx}
+                                    </Box>
+                                    <Box sx={{
+                                      width: 20,
+                                      textAlign: 'center',
+                                      color: '#1a7f37',
+                                      fontWeight: 'bold'
+                                    }}>
+                                      +
+                                    </Box>
+                                    <Box sx={{ px: 1, flex: 1, color: '#24292e' }}>
+                                      {line}
+                                    </Box>
+                                  </Box>
+                                ))}
+                              </Box>
+                            </Box>
+                          )}
+                        </>
+                      );
+                    })()}
                   </Box>
                 )}
               </Box>
