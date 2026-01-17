@@ -1,19 +1,21 @@
 # 🦉 CodeOwl - AI-Powered Code Review
 
-> Intelligent PR review automation powered by Claude AI, seamlessly integrated with GitHub and Jira.
+> Intelligent PR review automation powered by Claude AI & Google Gemini, seamlessly integrated with GitHub and Jira.
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue)](https://www.typescriptlang.org/)
 [![Material-UI](https://img.shields.io/badge/MUI-6.3-blue)](https://mui.com/)
+[![Claude](https://img.shields.io/badge/Claude-4.5-purple)](https://www.anthropic.com/)
+[![Gemini](https://img.shields.io/badge/Gemini-3.0-orange)](https://ai.google.dev/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue)](https://www.docker.com/)
 
 ## Overview
 
-CodeOwl is an AI-powered code review tool designed for development teams. It leverages Claude AI to provide intelligent, context-aware code reviews on your GitHub pull requests, with optional Jira integration for requirement validation.
+CodeOwl is an AI-powered code review tool designed for development teams. It leverages Claude AI or Google Gemini to provide intelligent, context-aware code reviews on your GitHub pull requests, with optional Jira integration for requirement validation.
 
 ### Key Features
 
-- **🤖 AI-Powered Reviews** - Leverage Claude Opus 4, Sonnet 4, or Haiku 4 for intelligent code analysis
+- **🤖 Multi-AI Support** - Choose between Claude AI (Opus, Sonnet, Haiku) or Google Gemini (3 Pro, 3 Flash)
 - **🔗 GitHub Integration** - Automatic PR fetching and inline comment posting
 - **📋 Jira Integration** - Validate code against acceptance criteria (optional)
 - **✨ Beautiful UI** - Modern, colorful interface with smooth animations
@@ -35,6 +37,7 @@ CodeOwl is an AI-powered code review tool designed for development teams. It lev
 ### Backend
 - **Next.js API Routes** for serverless functions
 - **Anthropic SDK** for Claude AI integration
+- **Google Generative AI SDK** for Gemini integration
 - **Octokit** for GitHub API
 - **Axios** for Jira REST API
 - **Winston** for logging
@@ -50,9 +53,13 @@ CodeOwl is an AI-powered code review tool designed for development teams. It lev
 Before you begin, you'll need:
 
 1. **Node.js 20+** and npm
-2. **Anthropic API Key** (required)
-   - Get from: https://console.anthropic.com/settings/keys
-   - See [Setup Guide](./docs/CLAUDE_API_SETUP.md)
+2. **AI Provider API Key** (at least one required):
+   - **Anthropic API Key** for Claude models
+     - Get from: https://console.anthropic.com/settings/keys
+     - See [Setup Guide](./docs/CLAUDE_API_SETUP.md)
+   - **Google Gemini API Key** for Gemini models (optional alternative)
+     - Get from: https://aistudio.google.com/app/apikey
+     - Free tier available
 3. **GitHub Personal Access Token** (required)
    - Fine-grained token with "Pull requests: Read and write"
    - See [Setup Guide](./docs/GITHUB_API_SETUP.md)
@@ -78,8 +85,9 @@ cp .env.example .env
 Edit `.env` and add your credentials:
 
 ```env
-# Required - Claude AI
-ANTHROPIC_API_KEY=sk-ant-your_api_key_here
+# AI Provider - At least one required
+ANTHROPIC_API_KEY=sk-ant-your_api_key_here  # For Claude models
+GEMINI_API_KEY=your_gemini_api_key_here      # For Gemini models (optional)
 
 # Required - GitHub
 GITHUB_TOKEN=ghp_your_github_token_here
@@ -145,7 +153,7 @@ docker run -p 3000:3000 \
    ```
 3. (Optional) Enter a Jira ticket ID or leave blank for auto-extraction
 4. (Optional) Add custom instructions for the AI reviewer
-5. Select your preferred Claude model
+5. Select your preferred AI model (Claude or Gemini)
 6. Click **Start Review**
 
 ### Review Process
@@ -154,7 +162,7 @@ CodeOwl will:
 
 1. **Fetch PR Data** - Download diff, files, and metadata from GitHub
 2. **Extract Jira Context** - Get ticket details and acceptance criteria (if configured)
-3. **AI Analysis** - Claude analyzes the code for:
+3. **AI Analysis** - Your chosen AI model (Claude or Gemini) analyzes the code for:
    - Bugs and potential issues
    - Security vulnerabilities
    - Code quality and best practices
@@ -221,20 +229,27 @@ codeowl/
 
 #### Required
 
-- `ANTHROPIC_API_KEY` - Your Claude API key (starts with `sk-ant-`)
 - `GITHUB_TOKEN` - GitHub Personal Access Token
+
+#### AI Provider (At least one required)
+
+**Claude AI:**
+- `ANTHROPIC_API_KEY` - Your Claude API key (starts with `sk-ant-`)
+- `CLAUDE_MODEL_DEFAULT` - Default Claude model (default: `claude-haiku-4-5-20251001`)
+- `CLAUDE_MAX_TOKENS` - Max output tokens (default: `4096`)
+- `CLAUDE_TEMPERATURE` - AI temperature 0-1 (default: `0.3`)
+
+**Google Gemini (Optional):**
+- `GEMINI_API_KEY` - Your Gemini API key (optional)
+- `GEMINI_MODEL_DEFAULT` - Default Gemini model (default: `gemini-2.0-flash`)
+- `GEMINI_MAX_TOKENS` - Max output tokens (default: `8192`)
+- `GEMINI_TEMPERATURE` - AI temperature 0-2 (default: `0.3`)
 
 #### Optional (Jira)
 
 - `JIRA_BASE_URL` - Your Jira instance URL
 - `JIRA_EMAIL` - Your Jira account email
 - `JIRA_API_TOKEN` - Jira API token
-
-#### Model Settings
-
-- `CLAUDE_MODEL_DEFAULT` - Default model (default: `claude-haiku-4-5-20251001`)
-- `CLAUDE_MAX_TOKENS` - Max output tokens (default: `4096`)
-- `CLAUDE_TEMPERATURE` - AI temperature (default: `0.3`)
 
 #### Storage & Logging
 
@@ -248,13 +263,58 @@ codeowl/
 - `RETRY_BASE_DELAY_MS` - Base delay between retries (default: `1000`)
 - `RETRY_MAX_DELAY_MS` - Max delay between retries (default: `10000`)
 
-### Available Claude Models
+### Available AI Models
 
-| Model | ID | Best For | Speed |
-|-------|----|---------:|------:|
-| Claude Opus 4 | `claude-opus-4-20250514` | Complex reviews, high accuracy | Slower |
-| Claude Sonnet 4 | `claude-sonnet-4-5-20250929` | Balanced performance | Medium |
-| Claude Haiku 4 | `claude-haiku-4-5-20251001` | Quick reviews, simple PRs | Fastest |
+#### Claude Models (Anthropic)
+
+| Model | ID | Best For | Speed | Max Tokens |
+|-------|----|---------:|------:|-----------:|
+| Claude Opus 4.5 | `claude-opus-4-5-20251101` | Complex reviews, highest accuracy | Slower | 8192 |
+| Claude Sonnet 4.5 | `claude-sonnet-4-5-20250929` | Balanced performance | Medium | 8192 |
+| Claude Haiku 4.5 | `claude-haiku-4-5-20251001` | Quick reviews, simple PRs | Fastest | 4096 |
+
+#### Gemini Models (Google)
+
+| Model | ID | Best For | Speed | Max Tokens |
+|-------|----|---------:|------:|-----------:|
+| Gemini 3 Pro Preview | `gemini-3-pro-preview` | Complex reasoning, thorough reviews | Medium | 8192 |
+| Gemini 3 Flash Preview | `gemini-3-flash-preview` | Fast reviews, efficient | Fast | 8192 |
+
+**Note:** You can use either Claude or Gemini models. Configure the appropriate API key in your `.env` file.
+
+### Getting Your Gemini API Key (Free Tier Available!)
+
+Google Gemini offers a **free tier** that's perfect for trying out CodeOwl:
+
+1. **Visit Google AI Studio**: https://aistudio.google.com/app/apikey
+2. **Sign in** with your Google account
+3. **Click "Create API Key"**
+4. **Copy your API key** and add it to `.env`:
+   ```env
+   GEMINI_API_KEY=your_gemini_api_key_here
+   ```
+
+**Free Tier Limits:**
+- 15 requests per minute
+- 1 million tokens per minute
+- 1,500 requests per day
+
+This is more than enough for most code review workflows!
+
+### Choosing Between Claude and Gemini
+
+| Feature | Claude | Gemini |
+|---------|--------|--------|
+| **Cost** | Paid (usage-based) | Free tier available |
+| **Best Models** | Opus 4.5, Sonnet 4.5 | Gemini 3 Pro Preview |
+| **Speed** | Very fast (Haiku) | Very fast (Flash) |
+| **Code Understanding** | Excellent | Excellent |
+| **Context Window** | 200K tokens | 2M tokens (Gemini 3) |
+| **Best For** | Production workloads | Testing, small teams |
+
+**Recommendation:**
+- **Start with Gemini** (free tier) to test CodeOwl
+- **Upgrade to Claude** for production use or larger teams
 
 ## Storage
 
