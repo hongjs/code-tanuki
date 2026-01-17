@@ -347,11 +347,11 @@ export function ReviewForm() {
               sx={{
                 width: 56,
                 height: 56,
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                background: '#ffffff',
                 boxShadow: '0 8px 20px rgba(102, 126, 234, 0.4)',
               }}
             >
-              <img src="/icon.png" alt="Code Tanuki" width={32} height={32} />
+              <img src="/icon.png" alt="Code Tanuki" width={40} height={40} />
             </Avatar>
             <Box>
               <Typography

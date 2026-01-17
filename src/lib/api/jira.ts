@@ -36,7 +36,7 @@ export class JiraClient {
           if (fields.description?.content) {
             const content = fields.description.content;
             for (const block of content) {
-              if (block.type === 'heading' && block.content?.[0]?.text === 'Acceptance Criteria') {
+              if (block.type === 'heading' && ['acceptance criteria', 'a/c'].includes(block.content?.[0]?.text?.toLowerCase())) {
                 // Find next paragraph block
                 const index = content.indexOf(block);
                 if (index !== -1 && content[index + 1]?.type === 'paragraph') {

@@ -20,11 +20,12 @@ import RateReviewIcon from '@mui/icons-material/RateReview';
 import HistoryIcon from '@mui/icons-material/History';
 import CodeIcon from '@mui/icons-material/Code';
 import MenuIcon from '@mui/icons-material/Menu';
+import TipsAndUpdatesIcon from '@mui/icons-material/TipsAndUpdates';
 import { useState } from 'react';
 
 const drawerWidth = 280;
 
-const menuItems = [
+const mainMenuItems = [
   {
     text: 'Review',
     icon: <RateReviewIcon />,
@@ -36,6 +37,15 @@ const menuItems = [
     icon: <HistoryIcon />,
     path: '/history',
     gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+  },
+];
+
+const supportMenuItems = [
+  {
+    text: 'How it Works',
+    icon: <TipsAndUpdatesIcon />,
+    path: '/how-it-works',
+    gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
   },
 ];
 
@@ -71,13 +81,13 @@ export function Sidebar() {
       >
         <Avatar
           sx={{
-            background: 'rgba(255, 255, 255, 0.2)',
+            background: '#ffffff',
             backdropFilter: 'blur(10px)',
             width: 48,
             height: 48,
           }}
         >
-          <img src="/icon.png" alt="Code Tanuki" width={24} height={24} />
+          <img src="/icon.png" alt="Code Tanuki" width={32} height={32} />
         </Avatar>
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.5px' }}>
@@ -93,11 +103,68 @@ export function Sidebar() {
 
       {/* Navigation Menu */}
       <List sx={{ px: 2, py: 3, flex: 1 }}>
-        {menuItems.map((item) => {
+        {mainMenuItems.map((item) => {
           const isActive = pathname === item.path;
           return (
             <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
               <ListItemButton
+                onClick={() => {
+                  router.push(item.path);
+                  if (isMobile) {
+                    setMobileOpen(false);
+                  }
+                }}
+                sx={{
+                  borderRadius: '12px',
+                  py: 1.5,
+                  px: 2,
+                  background: isActive
+                    ? 'rgba(255, 255, 255, 0.2)'
+                    : 'transparent',
+                  backdropFilter: isActive ? 'blur(10px)' : 'none',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  '&:hover': {
+                    background: 'rgba(255, 255, 255, 0.15)',
+                    transform: 'translateX(8px)',
+                  },
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    color: 'white',
+                    minWidth: 36,
+                    '& svg': {
+                      fontSize: 20,
+                      filter: isActive ? 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' : 'none',
+                    },
+                  }}
+                >
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.text}
+                  primaryTypographyProps={{
+                    fontWeight: isActive ? 700 : 500,
+                    fontSize: '0.875rem',
+                  }}
+                />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
+
+        {/* Support Section */}
+        <Box sx={{ mt: 3, mb: 1, px: 2 }}>
+          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', fontWeight: 700, letterSpacing: '1px' }}>
+            SUPPORT
+          </Typography>
+        </Box>
+
+        {supportMenuItems.map((item) => {
+          const isActive = pathname === item.path;
+          return (
+            <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
+               <ListItemButton
                 onClick={() => {
                   router.push(item.path);
                   if (isMobile) {
