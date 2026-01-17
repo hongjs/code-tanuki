@@ -4,7 +4,12 @@ import { Providers } from './providers';
 
 export const metadata: Metadata = {
   title: 'CodeOwl - AI-Powered PR Review',
-  description: 'AI-powered PR review tool for dev managers',
+  description: 'AI-powered PR review tool for dev managers using Claude AI & Google Gemini',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({

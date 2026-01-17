@@ -77,7 +77,7 @@ export function Sidebar() {
             height: 48,
           }}
         >
-          <CodeIcon sx={{ fontSize: 28 }} />
+          <CodeIcon sx={{ fontSize: 24 }} />
         </Avatar>
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.5px' }}>
@@ -122,9 +122,9 @@ export function Sidebar() {
                 <ListItemIcon
                   sx={{
                     color: 'white',
-                    minWidth: 40,
+                    minWidth: 36,
                     '& svg': {
-                      fontSize: 24,
+                      fontSize: 20,
                       filter: isActive ? 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' : 'none',
                     },
                   }}
@@ -135,7 +135,7 @@ export function Sidebar() {
                   primary={item.text}
                   primaryTypographyProps={{
                     fontWeight: isActive ? 700 : 500,
-                    fontSize: '0.95rem',
+                    fontSize: '0.875rem',
                   }}
                 />
               </ListItemButton>

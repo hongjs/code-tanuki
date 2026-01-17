@@ -24,3 +24,9 @@ export interface AIModel {
   maxTokens: number;
   provider: AIProvider;
 }
+
+export interface AppConfig {
+  hasJiraConfig: boolean;
+  hasAnthropicKey: boolean;
+  hasGeminiKey: boolean;
+}

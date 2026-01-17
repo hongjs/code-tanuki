@@ -3,9 +3,9 @@ import { z } from 'zod';
 export const reviewRequestSchema = z.object({
   prUrl: z.string().url().includes('github.com/').includes('/pull/'),
   jiraTicketId: z
-    .string()
-    .regex(/^[A-Z]+-\d+$/)
-    .optional(),
+    .union([z.string().regex(/^[A-Z]+-\d+$/), z.literal('')])
+    .optional()
+    .transform((val) => (val === '' ? undefined : val)),
   additionalPrompt: z.string().max(2000).optional(),
   modelId: z.string().min(1),
   previewOnly: z.boolean().optional().default(false),
@@ -13,7 +13,10 @@ export const reviewRequestSchema = z.object({
 
 export const submitReviewSchema = z.object({
   prUrl: z.string().url().includes('github.com/').includes('/pull/'),
-  jiraTicketId: z.string().optional(),
+  jiraTicketId: z
+    .union([z.string().regex(/^[A-Z]+-\d+$/), z.literal('')])
+    .optional()
+    .transform((val) => (val === '' ? undefined : val)),
   modelId: z.string().min(1),
   comments: z.array(
     z.object({

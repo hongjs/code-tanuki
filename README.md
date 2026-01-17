@@ -242,8 +242,10 @@ codeowl/
 **Google Gemini (Optional):**
 - `GEMINI_API_KEY` - Your Gemini API key (optional)
 - `GEMINI_MODEL_DEFAULT` - Default Gemini model (default: `gemini-2.0-flash`)
-- `GEMINI_MAX_TOKENS` - Max output tokens (default: `8192`)
+- `GEMINI_MAX_TOKENS` - Max output tokens (default: `2048`, recommended for free tier)
 - `GEMINI_TEMPERATURE` - AI temperature 0-2 (default: `0.3`)
+
+> **Note for Free Tier Users**: The free tier works best with `GEMINI_MAX_TOKENS=2048` or lower to avoid response truncation. For larger PRs, consider using Claude or upgrading to Gemini paid tier.
 
 #### Optional (Jira)
 
@@ -275,12 +277,15 @@ codeowl/
 
 #### Gemini Models (Google)
 
-| Model | ID | Best For | Speed | Max Tokens |
+| Model | ID | Best For | Speed | Max Tokens* |
 |-------|----|---------:|------:|-----------:|
-| Gemini 3 Pro Preview | `gemini-3-pro-preview` | Complex reasoning, thorough reviews | Medium | 8192 |
-| Gemini 3 Flash Preview | `gemini-3-flash-preview` | Fast reviews, efficient | Fast | 8192 |
+| Gemini 3 Pro Preview | `gemini-3-pro-preview` | Complex reasoning, thorough reviews | Medium | 2048** |
+| Gemini 3 Flash Preview | `gemini-3-flash-preview` | Fast reviews, efficient | Fast | 2048** |
 
 **Note:** You can use either Claude or Gemini models. Configure the appropriate API key in your `.env` file.
+
+\* Max output tokens (configurable)
+\** Recommended setting for free tier to avoid response truncation. Paid tier supports higher limits.
 
 ### Getting Your Gemini API Key (Free Tier Available!)
 
@@ -298,8 +303,17 @@ Google Gemini offers a **free tier** that's perfect for trying out CodeOwl:
 - 15 requests per minute
 - 1 million tokens per minute
 - 1,500 requests per day
+- Recommended max output tokens: 2048
 
-This is more than enough for most code review workflows!
+**Important**: To avoid response truncation on the free tier, make sure to set:
+```env
+GEMINI_MAX_TOKENS=2048
+```
+
+For larger PRs (>500 lines), you may get partial reviews. Consider:
+- Using Claude AI instead
+- Breaking PRs into smaller chunks
+- Upgrading to Gemini's paid tier
 
 ### Choosing Between Claude and Gemini
 
@@ -424,6 +438,27 @@ Make sure `.env` exists and contains all required variables:
 cp .env.example .env
 # Edit .env and fill in your API keys
 ```
+
+### Gemini Response Truncation (Free Tier)
+
+**Error**: `Failed to parse Gemini response as JSON. Response may be truncated.`
+
+**Solution**: The free tier has token limits. Update your `.env`:
+
+```env
+# Reduce max tokens for free tier
+GEMINI_MAX_TOKENS=2048
+
+# Or use an even lower value for very large PRs
+GEMINI_MAX_TOKENS=1024
+```
+
+**Alternative**: Switch to Claude AI for larger PRs:
+```env
+ANTHROPIC_API_KEY=sk-ant-your_key_here
+```
+
+Then select a Claude model in the UI instead of Gemini.
 
 ### Storage Errors
 

@@ -23,11 +23,15 @@ import { ReviewProgress } from './ReviewProgress';
 import { ReviewPreviewDialog } from './ReviewPreviewDialog';
 import { ReviewStatus, ReviewComment } from '@/types/review';
 import { ALL_AI_MODELS } from '@/lib/constants/models';
+import { AppConfig } from '@/types/ai';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import SpeedIcon from '@mui/icons-material/Speed';
 import SecurityIcon from '@mui/icons-material/Security';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+
 
 export function ReviewForm() {
   const [prUrl, setPrUrl] = useState('');
@@ -50,6 +54,13 @@ export function ReviewForm() {
   const progressTimeoutsRef = useRef<NodeJS.Timeout[]>([]);
   const isCancelledRef = useRef(false);
   const prUrlDebounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [config, setConfig] = useState<AppConfig>({
+    hasJiraConfig: true,
+    hasAnthropicKey: true,
+    hasGeminiKey: true,
+  });
+  const [configLoading, setConfigLoading] = useState(true);
 
   // Fetch PR title when URL is entered
   const fetchPRTitle = async (url: string) => {
@@ -127,6 +138,25 @@ export function ReviewForm() {
     progressTimeoutsRef.current = [];
     isCancelledRef.current = true;
   };
+
+  // Fetch app configuration on mount
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const response = await fetch('/api/config');
+        if (response.ok) {
+          const data = await response.json();
+          setConfig(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch config:', err);
+      } finally {
+        setConfigLoading(false);
+      }
+    };
+
+    fetchConfig();
+  }, []);
 
   // Cleanup timeouts on unmount
   useEffect(() => {
@@ -317,7 +347,7 @@ export function ReviewForm() {
                 boxShadow: '0 8px 20px rgba(102, 126, 234, 0.4)',
               }}
             >
-              <AutoAwesomeIcon sx={{ fontSize: 28 }} />
+              <AutoAwesomeIcon sx={{ fontSize: 24 }} />
             </Avatar>
             <Box>
               <Typography
@@ -476,8 +506,12 @@ export function ReviewForm() {
                 value={jiraTicketId}
                 onChange={(e) => handleInputChange('jiraTicketId', e.target.value)}
                 fullWidth
-                disabled={status !== 'idle'}
-                helperText="Leave empty to auto-extract from PR title"
+                disabled={status !== 'idle' || !config.hasJiraConfig}
+                helperText={
+                  !config.hasJiraConfig && !configLoading
+                    ? 'Jira integration not configured. Set JIRA_BASE_URL, JIRA_EMAIL, and JIRA_API_TOKEN in .env'
+                    : 'Leave empty to auto-extract from PR title'
+                }
               />
 
               <TextField
@@ -492,7 +526,12 @@ export function ReviewForm() {
                 helperText="Max 2000 characters"
               />
 
-              <ModelSelector value={modelId} onChange={setModelId} />
+              <ModelSelector
+                value={modelId}
+                onChange={setModelId}
+                config={config}
+                configLoading={configLoading}
+              />
 
               <Stack direction="row" spacing={2}>
                 <Button
@@ -504,7 +543,6 @@ export function ReviewForm() {
                   startIcon={<RocketLaunchIcon />}
                   sx={{
                     py: 1.5,
-                    fontSize: '1.1rem',
                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                     position: 'relative',
                     overflow: 'hidden',
@@ -535,7 +573,6 @@ export function ReviewForm() {
                   startIcon={<RestartAltIcon />}
                   sx={{
                     py: 1.5,
-                    fontSize: '1.1rem',
                     borderColor: '#667eea',
                     color: '#667eea',
                     '&:hover': {
@@ -548,6 +585,28 @@ export function ReviewForm() {
                 </Button>
               </Stack>
             </Box>
+
+            {/* Security Notice */}
+            <Alert
+              severity="info"
+              icon={<LockOutlinedIcon />}
+              sx={{
+                mt: 4,
+                bgcolor: 'rgba(102, 126, 234, 0.05)',
+                border: '1px solid rgba(102, 126, 234, 0.1)',
+                '& .MuiAlert-message': { width: '100%' }
+              }}
+            >
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  Data Privacy & Security
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Your code and data are processed <strong>in-memory only</strong> and transmitted directly to the AI provider.
+                  CodeOwl <strong>does not store</strong> any of your code, PR details, or API keys on its servers.
+                </Typography>
+              </Box>
+            </Alert>
 
             <ReviewProgress status={status} error={error} />
 

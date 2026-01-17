@@ -138,18 +138,26 @@ Main review form with:
 idle → fetching-github → fetching-jira → ai-review → approval → posting-comments → success
 ```
 
-### Client: `lib/api/claude.ts`
+### Clients: `lib/api/claude.ts` and `lib/api/gemini.ts`
 
-Claude AI client with:
+**Claude AI client** (`claude.ts`):
 - Streaming support (currently unused)
 - Token counting
 - Error handling
 - Retry logic via `withRetry`
 
-**Key Method**: `reviewPullRequest()`
+**Gemini AI client** (`gemini.ts`):
+- JSON mode with structured output
+- Response truncation handling (for free tier)
+- Automatic salvage of incomplete JSON
+- Retry logic via `withRetry`
+
+**Key Method** (both): `reviewPR()` / `reviewPullRequest()`
 - Takes PR diff, files, Jira context
 - Returns structured review comments
 - Uses prompt from `lib/constants/prompts.ts`
+
+**Important**: Gemini free tier has stricter token limits (2048 recommended) to avoid response truncation.
 
 ### Storage: `lib/storage/json-storage.ts`
 
@@ -382,9 +390,18 @@ export async function POST(request: NextRequest) {
 
 ### Required
 
+At least one AI provider is required:
+
 ```env
-ANTHROPIC_API_KEY=sk-ant-...    # Claude AI
-GITHUB_TOKEN=ghp_...            # GitHub API
+# Option 1: Claude AI (Recommended for production)
+ANTHROPIC_API_KEY=sk-ant-...
+
+# Option 2: Google Gemini (Free tier available)
+GEMINI_API_KEY=...
+GEMINI_MAX_TOKENS=2048  # Important for free tier!
+
+# GitHub (Always required)
+GITHUB_TOKEN=ghp_...
 ```
 
 ### Optional (Jira)
@@ -438,6 +455,38 @@ npm run lint
 ```
 
 ## Troubleshooting
+
+### Gemini "Failed to parse JSON" Error
+
+**Problem**: Response truncation on Gemini free tier
+
+**Error Message**:
+```
+Failed to parse Gemini response as JSON. Response may be truncated.
+```
+
+**Root Cause**: Gemini free tier has token limits that cause responses to be cut off mid-JSON.
+
+**Solution**:
+
+1. **Reduce max tokens** in `.env`:
+   ```env
+   GEMINI_MAX_TOKENS=2048  # Default, safe for free tier
+   # Or even lower for very large PRs:
+   GEMINI_MAX_TOKENS=1024
+   ```
+
+2. **Check the salvage logic** in `src/lib/api/gemini.ts`:
+   - Lines 86-142 handle truncated responses
+   - Automatically closes incomplete JSON structures
+   - Removes incomplete string fields
+
+3. **Alternative**: Use Claude AI for larger PRs
+   ```env
+   ANTHROPIC_API_KEY=sk-ant-your_key_here
+   ```
+
+4. **Debugging**: Check logs in `logs/combined.log` for the actual truncated response
 
 ### "Cannot find module '@/...'"
 

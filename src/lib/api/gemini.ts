@@ -86,14 +86,42 @@ export class GeminiClient {
             try {
               // Try to fix truncated JSON by closing arrays and objects
               let fixedJson = text;
-              
+
               // Remove markdown code blocks
               fixedJson = fixedJson.replace(/```json\s*/g, '').replace(/```\s*/g, '');
-              
+
               // Find the start of the JSON
               const startIdx = fixedJson.indexOf('{');
-              if (startIdx !== -1) {
+              if (startIdx === -1) {
+                // Try to find array start
+                const arrayStart = fixedJson.indexOf('[');
+                if (arrayStart !== -1) {
+                  fixedJson = fixedJson.substring(arrayStart);
+                }
+              } else {
                 fixedJson = fixedJson.substring(startIdx);
+              }
+
+              // Remove any trailing incomplete string
+              // Look for unclosed quotes that indicate truncation
+              const lastQuote = fixedJson.lastIndexOf('"');
+              const secondLastQuote = fixedJson.lastIndexOf('"', lastQuote - 1);
+
+              // If we have an odd number of quotes, we have an incomplete string
+              const quoteCount = (fixedJson.match(/"/g) || []).length;
+              if (quoteCount % 2 !== 0) {
+                // Find the last complete key-value pair or object
+                let cutPoints = [
+                  fixedJson.lastIndexOf('},'),
+                  fixedJson.lastIndexOf('}]'),
+                  fixedJson.lastIndexOf('",'),
+                ];
+                const cutPoint = Math.max(...cutPoints);
+
+                if (cutPoint > 0) {
+                  // Cut at the last complete element
+                  fixedJson = fixedJson.substring(0, cutPoint + 2);
+                }
               }
 
               // Count unclosed brackets and braces
@@ -102,29 +130,16 @@ export class GeminiClient {
               const openBrackets = (fixedJson.match(/\[/g) || []).length;
               const closeBrackets = (fixedJson.match(/]/g) || []).length;
 
-              // If we have an incomplete comment, try to close it properly
-              if (openBraces > closeBraces || openBrackets > closeBrackets) {
-                // Remove incomplete last comment if any
-                const lastCompleteComment = fixedJson.lastIndexOf('},');
-                const lastCompleteCommentAlt = fixedJson.lastIndexOf('}]');
-                const cutPoint = Math.max(lastCompleteComment, lastCompleteCommentAlt);
-                
-                if (cutPoint > 0 && cutPoint > fixedJson.length * 0.5) {
-                  // Cut at the last complete comment and close properly
-                  fixedJson = fixedJson.substring(0, cutPoint + 1);
-                }
-
-                // Close any remaining open structures
-                for (let i = 0; i < openBrackets - closeBrackets; i++) {
-                  fixedJson += ']';
-                }
-                for (let i = 0; i < openBraces - closeBraces; i++) {
-                  fixedJson += '}';
-                }
+              // Close any remaining open structures
+              for (let i = 0; i < openBrackets - closeBrackets; i++) {
+                fixedJson += ']';
+              }
+              for (let i = 0; i < openBraces - closeBraces; i++) {
+                fixedJson += '}';
               }
 
               reviewResponse = JSON.parse(fixedJson.trim()) as AIReviewResponse;
-              logger.info(`Successfully salvaged truncated Gemini response`);
+              logger.info(`Successfully salvaged truncated Gemini response with ${reviewResponse.comments?.length || 0} comments`);
             } catch (salvageError) {
               logger.error(`Failed to parse Gemini response as JSON`, {
                 error: parseError instanceof Error ? parseError.message : String(parseError),

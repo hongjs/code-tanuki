@@ -35,6 +35,7 @@ const theme = createTheme({
     },
   },
   typography: {
+    fontSize: 13, // Base font size reduced from default 14
     fontFamily: [
       '-apple-system',
       'BlinkMacSystemFont',
@@ -44,14 +45,42 @@ const theme = createTheme({
       'Arial',
       'sans-serif',
     ].join(','),
+    h1: {
+      fontSize: '2rem', // 32px
+      fontWeight: 700,
+    },
+    h2: {
+      fontSize: '1.75rem', // 28px
+      fontWeight: 700,
+    },
+    h3: {
+      fontSize: '1.5rem', // 24px
+      fontWeight: 700,
+    },
     h4: {
+      fontSize: '1.25rem', // 20px
       fontWeight: 700,
     },
     h5: {
+      fontSize: '1.125rem', // 18px
       fontWeight: 700,
     },
     h6: {
+      fontSize: '1rem', // 16px
       fontWeight: 600,
+    },
+    body1: {
+      fontSize: '0.875rem', // 14px
+    },
+    body2: {
+      fontSize: '0.8125rem', // 13px
+    },
+    button: {
+      fontSize: '0.8125rem', // 13px
+      fontWeight: 600,
+    },
+    caption: {
+      fontSize: '0.75rem', // 12px
     },
   },
   shape: {
@@ -63,9 +92,7 @@ const theme = createTheme({
         root: {
           textTransform: 'none',
           borderRadius: '8px',
-          padding: '10px 24px',
-          fontSize: '0.95rem',
-          fontWeight: 600,
+          padding: '8px 20px',
           boxShadow: 'none',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           '&:hover': {
