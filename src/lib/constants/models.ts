@@ -2,22 +2,22 @@ import { AIModel, AIProvider } from '@/types/ai';
 
 export const CLAUDE_MODELS: AIModel[] = [
   {
-    id: 'claude-opus-4-20250514',
-    name: 'Claude Opus 4',
+    id: 'claude-opus-4-5-20251101',
+    name: 'Claude Opus 4.5',
     description: 'Most capable model, best for complex code review',
     maxTokens: 8192,
     provider: 'claude',
   },
   {
-    id: 'claude-sonnet-4-20250514',
-    name: 'Claude Sonnet 4',
+    id: 'claude-sonnet-4-5-20250929',
+    name: 'Claude Sonnet 4.5',
     description: 'Balanced performance and speed',
     maxTokens: 8192,
     provider: 'claude',
   },
   {
-    id: 'claude-haiku-4-20250514',
-    name: 'Claude Haiku 4',
+    id: 'claude-haiku-4-5-20251001',
+    name: 'Claude Haiku 4.5',
     description: 'Fastest, good for simple reviews',
     maxTokens: 4096,
     provider: 'claude',
@@ -26,30 +26,16 @@ export const CLAUDE_MODELS: AIModel[] = [
 
 export const GEMINI_MODELS: AIModel[] = [
   {
-    id: 'gemini-2.0-flash',
-    name: 'Gemini 2.0 Flash',
-    description: 'Latest and fastest Gemini model',
+    id: 'gemini-3-pro-preview',
+    name: 'Gemini 3 Pro Preview',
+    description: 'Most capable Gemini 3 model, best for complex reasoning tasks',
     maxTokens: 8192,
     provider: 'gemini',
   },
   {
-    id: 'gemini-2.0-flash-lite',
-    name: 'Gemini 2.0 Flash Lite',
-    description: 'Lightweight, cost-efficient model',
-    maxTokens: 4096,
-    provider: 'gemini',
-  },
-  {
-    id: 'gemini-1.5-pro',
-    name: 'Gemini 1.5 Pro',
-    description: 'Best for complex reasoning tasks',
-    maxTokens: 8192,
-    provider: 'gemini',
-  },
-  {
-    id: 'gemini-1.5-flash',
-    name: 'Gemini 1.5 Flash',
-    description: 'Fast and versatile model',
+    id: 'gemini-3-flash-preview',
+    name: 'Gemini 3 Flash Preview',
+    description: 'Fast and efficient Gemini 3 model',
     maxTokens: 8192,
     provider: 'gemini',
   },

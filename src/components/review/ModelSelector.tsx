@@ -16,26 +16,22 @@ interface ModelSelectorProps {
 
 const modelIcons: Record<string, typeof AutoAwesomeIcon> = {
   // Claude models
-  'claude-opus-4-20250514': AutoAwesomeIcon,
-  'claude-sonnet-4-20250514': BoltIcon,
-  'claude-haiku-4-20250514': SpeedIcon,
+  'claude-opus-4-5-20251101': AutoAwesomeIcon,
+  'claude-sonnet-4-5-20250929': BoltIcon,
+  'claude-haiku-4-5-20251001': SpeedIcon,
   // Gemini models
-  'gemini-2.0-flash': FlashOnIcon,
-  'gemini-2.0-flash-lite': SpeedIcon,
-  'gemini-1.5-pro': PsychologyIcon,
-  'gemini-1.5-flash': RocketLaunchIcon,
+  'gemini-3-pro-preview': PsychologyIcon,
+  'gemini-3-flash-preview': FlashOnIcon,
 };
 
 const modelGradients: Record<string, string> = {
   // Claude models - Purple/Pink gradient scheme
-  'claude-opus-4-20250514': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-  'claude-sonnet-4-20250514': 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-  'claude-haiku-4-20250514': 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+  'claude-opus-4-5-20251101': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  'claude-sonnet-4-5-20250929': 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+  'claude-haiku-4-5-20251001': 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
   // Gemini models - Blue/Green gradient scheme
-  'gemini-2.0-flash': 'linear-gradient(135deg, #4285f4 0%, #34a853 100%)',
-  'gemini-2.0-flash-lite': 'linear-gradient(135deg, #34a853 0%, #fbbc05 100%)',
-  'gemini-1.5-pro': 'linear-gradient(135deg, #ea4335 0%, #fbbc05 100%)',
-  'gemini-1.5-flash': 'linear-gradient(135deg, #4285f4 0%, #ea4335 100%)',
+  'gemini-3-pro-preview': 'linear-gradient(135deg, #ea4335 0%, #fbbc05 100%)',
+  'gemini-3-flash-preview': 'linear-gradient(135deg, #4285f4 0%, #34a853 100%)',
 };
 
 const providerColors = {

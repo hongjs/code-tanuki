@@ -34,7 +34,7 @@ export function ReviewForm() {
   const [jiraTicketId, setJiraTicketId] = useState('');
   const [additionalPrompt, setAdditionalPrompt] = useState('');
   const [modelId, setModelId] = useState(
-    process.env.NEXT_PUBLIC_CLAUDE_MODEL_DEFAULT || 'claude-haiku-4-20250514'
+    process.env.NEXT_PUBLIC_CLAUDE_MODEL_DEFAULT || 'claude-haiku-4-5-20251001'
   );
   const [status, setStatus] = useState<ReviewStatus>('idle');
   const [error, setError] = useState<string>();
@@ -45,6 +45,7 @@ export function ReviewForm() {
   const [prTitleError, setPrTitleError] = useState<string>();
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewComments, setPreviewComments] = useState<ReviewComment[]>([]);
+  const [previewDiff, setPreviewDiff] = useState<string>('');
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const progressTimeoutsRef = useRef<NodeJS.Timeout[]>([]);
   const isCancelledRef = useRef(false);
@@ -220,6 +221,7 @@ export function ReviewForm() {
 
       if (data.preview) {
         setPreviewComments(data.comments);
+        setPreviewDiff(data.diff || '');
         setPreviewOpen(true);
         setStatus('approval'); // Update status to approval
       } else {
@@ -297,6 +299,7 @@ export function ReviewForm() {
           setStatus('idle');
         }}
         comments={previewComments}
+        diff={previewDiff}
         prTitle={prTitle || 'Pull Request'}
         prUrl={prUrl}
         modelName={ALL_AI_MODELS.find((m) => m.id === modelId)?.name || modelId}

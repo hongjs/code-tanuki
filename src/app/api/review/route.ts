@@ -166,6 +166,7 @@ export async function POST(request: NextRequest) {
             jiraTicketId,
             comments: reviewResponse.comments,
             modelId: validatedRequest.modelId,
+            diff: pr.diff, // Send diff to frontend
           });
         }
 

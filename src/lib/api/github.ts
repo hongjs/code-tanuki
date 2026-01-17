@@ -34,12 +34,57 @@ export class GitHubClient {
             pull_number,
           });
 
+          // Read .aiignore from local project root
+          let ignorePatterns: string[] = [];
+          try {
+            const fs = await import('fs');
+            const path = await import('path');
+            const ignorePath = path.join(process.cwd(), '.aiignore');
+            if (fs.existsSync(ignorePath)) {
+              const content = fs.readFileSync(ignorePath, 'utf-8');
+              ignorePatterns = content
+                .split('\n')
+                .map((line) => line.trim())
+                .filter((line) => line && !line.startsWith('#'));
+              logger.info(`Loaded .aiignore patterns`, { count: ignorePatterns.length });
+            }
+          } catch (err) {
+            logger.warn('Failed to load .aiignore', { error: err });
+          }
+
+          // Simple glob-like matcher function
+          const matchesPattern = (filename: string, pattern: string): boolean => {
+            if (pattern.startsWith('*')) {
+              return filename.endsWith(pattern.slice(1));
+            }
+            if (pattern.endsWith('/')) {
+              return filename.startsWith(pattern) || filename.includes('/' + pattern);
+            }
+            if (pattern.includes('*')) {
+              const parts = pattern.split('*');
+              return filename.startsWith(parts[0]) && filename.endsWith(parts[1]);
+            }
+            return filename === pattern || filename.split('/').pop() === pattern;
+          };
+
+          // Filter files
+          const filteredFiles = files.filter((file) => {
+            const isIgnored = ignorePatterns.some((pattern) => 
+              matchesPattern(file.filename, pattern)
+            );
+            if (isIgnored) {
+              logger.debug(`Ignoring file from review`, { file: file.filename });
+            }
+            return !isIgnored;
+          });
+
           // Build diff from files
           let diff = '';
-          for (const file of files) {
+          for (const file of filteredFiles) {
             if (file.patch) {
-              diff += `\n--- ${file.filename}\n`;
-              diff += `+++ ${file.filename}\n`;
+              diff += `diff --git a/${file.filename} b/${file.filename}\n`;
+              diff += `--- a/${file.filename}\n`;
+              diff += `+++ b/${file.filename}\n`;
               diff += file.patch + '\n\n';
             }
           }
