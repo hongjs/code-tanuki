@@ -25,6 +25,7 @@ import { ReviewPreviewDialog } from './ReviewPreviewDialog';
 import { ReviewStatus, ReviewComment } from '@/types/review';
 import { ALL_AI_MODELS } from '@/lib/constants/models';
 import { AppConfig } from '@/types/ai';
+import { extractJiraTicketFromTitle } from '@/lib/constants/regex';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import SpeedIcon from '@mui/icons-material/Speed';
@@ -93,6 +94,15 @@ export function ReviewForm() {
         console.log('PR title fetched:', data.title);
         setPrTitle(data.title);
         setPrTitleError(undefined);
+
+        // Auto-fill Jira ticket ID if found in PR title and field is empty
+        if (data.title && !jiraTicketId) {
+          const extractedJiraId = extractJiraTicketFromTitle(data.title);
+          if (extractedJiraId) {
+            console.log('Auto-filled Jira ticket ID:', extractedJiraId);
+            setJiraTicketId(extractedJiraId);
+          }
+        }
       } else {
         const errorData = await response.json();
         console.error('Failed to fetch PR title:', response.status, errorData);
@@ -516,19 +526,30 @@ export function ReviewForm() {
                 )}
               </Box>
 
-              <TextField
-                label="Jira Ticket ID (Optional)"
-                placeholder="BYD-1234"
-                value={jiraTicketId}
-                onChange={(e) => handleInputChange('jiraTicketId', e.target.value)}
-                fullWidth
-                disabled={status !== 'idle' || !config.hasJiraConfig}
-                helperText={
-                  !config.hasJiraConfig && !configLoading
-                    ? 'Jira integration not configured'
-                    : 'Leave empty to auto-extract'
-                }
-              />
+              <Box>
+                <TextField
+                  label="Jira Ticket ID (Optional)"
+                  placeholder="BYD-1234"
+                  value={jiraTicketId}
+                  onChange={(e) => handleInputChange('jiraTicketId', e.target.value)}
+                  fullWidth
+                  disabled={status !== 'idle' || !config.hasJiraConfig}
+                  helperText={
+                    !config.hasJiraConfig && !configLoading
+                      ? 'Jira integration not configured'
+                      : 'Auto-extracted from PR title or enter manually'
+                  }
+                  InputProps={{
+                    sx: {
+                      '&:hover': {
+                        '& fieldset': {
+                          borderColor: '#667eea !important',
+                        },
+                      },
+                    },
+                  }}
+                />
+              </Box>
 
               <TextField
                 label="Additional Instructions (Optional)"
