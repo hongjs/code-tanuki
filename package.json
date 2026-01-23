@@ -11,8 +11,8 @@
     "type-check": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "docker:build": "docker build -t codeowl:latest .",
-    "docker:run": "docker run -p 3000:3000 --env-file .env -v ./data:/data -v ./logs:/logs codeowl:latest",
+    "docker:build": "docker build -t code-tanuki:latest .",
+    "docker:run": "docker run -p 3000:3000 --env-file .env -v ./data:/data -v ./logs:/logs code-tanuki:latest",
     "docker:compose:up": "docker-compose up -d",
     "docker:compose:down": "docker-compose down",
     "docker:compose:logs": "docker-compose logs -f"
@@ -50,12 +50,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hongjs/codeowl.git"
+    "url": "git+https://github.com/hongjs/code-tanuki.git"
   },
   "bugs": {
-    "url": "https://github.com/hongjs/codeowl/issues"
+    "url": "https://github.com/hongjs/code-tanuki/issues"
   },
-  "homepage": "https://github.com/hongjs/codeowl#readme",
+  "homepage": "https://github.com/hongjs/code-tanuki#readme",
   "author": "",
   "license": "ISC"
 }

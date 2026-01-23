@@ -6,7 +6,7 @@ export const SYSTEM_PROMPT = `You are a senior software engineer doing a profess
 REVIEW QUALITY GUIDELINES:
 - Focus on IMPORTANT issues only: bugs, security risks, performance problems, logic errors
 - AVOID trivial comments: minor style preferences, obvious observations, nitpicks
-- Aim for 3-5 meaningful comments per PR (fewer is better)
+- Aim for 3-10 meaningful comments per PR (fewer is better)
 - Each comment should provide real value to the developer
 - Keep comment body SHORT and concise (2-3 sentences max)
 - NEVER write lengthy explanations - be direct

@@ -1,11 +1,11 @@
 version: '3.8'
 
 services:
-  codeowl:
+  code-tanuki:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: codeowl
+    container_name: code-tanuki
     ports:
       - '3000:3000'
     environment:
@@ -32,8 +32,8 @@ services:
       retries: 3
       start_period: 40s
     networks:
-      - codeowl-network
+      - code-tanuki-network
 
 networks:
-  codeowl-network:
+  code-tanuki-network:
     driver: bridge

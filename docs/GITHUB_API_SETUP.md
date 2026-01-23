@@ -1,10 +1,10 @@
 # GitHub API Setup Guide
 
-This document explains how to configure GitHub API access for CodeOwl's PR review functionality.
+This document explains how to configure GitHub API access for Code-Tanuki's PR review functionality.
 
 ## Required GitHub API Operations
 
-CodeOwl uses the following GitHub API operations:
+Code-Tanuki uses the following GitHub API operations:
 
 - **`pulls.get()`** - Fetch PR details (title, body, state, head SHA)
 - **`pulls.listFiles()`** - List PR files and diffs for AI review
@@ -17,9 +17,11 @@ CodeOwl uses the following GitHub API operations:
 Fine-grained tokens provide better security by limiting access to specific repositories and permissions.
 
 **Repository Permissions:**
+
 - **Pull requests: Read and write** ✓
 
 **Advantages:**
+
 - More secure (principle of least privilege)
 - Can limit access to specific repositories only
 - Easier to audit and manage
@@ -30,11 +32,11 @@ Fine-grained tokens provide better security by limiting access to specific repos
 1. Navigate to: https://github.com/settings/tokens?type=beta
 2. Click **"Generate new token"**
 3. Configure the token:
-   - **Token name**: `CodeOwl PR Review`
+   - **Token name**: `Code-Tanuki PR Review`
    - **Expiration**: Choose based on your security requirements (90 days recommended)
    - **Repository access**:
      - Select **"Only select repositories"**
-     - Choose the repositories you want CodeOwl to access
+     - Choose the repositories you want Code-Tanuki to access
    - **Permissions** → **Repository permissions**:
      - Set **Pull requests** to **Read and write**
 4. Click **"Generate token"**
@@ -47,9 +49,11 @@ Fine-grained tokens provide better security by limiting access to specific repos
 Classic tokens have broader access but are simpler to set up.
 
 **For Public Repositories:**
+
 - ✓ `public_repo` - Access public repositories
 
 **For Private Repositories:**
+
 - ✓ `repo` - Full control of private repositories
 
 **How to Create:**
@@ -57,7 +61,7 @@ Classic tokens have broader access but are simpler to set up.
 1. Navigate to: https://github.com/settings/tokens
 2. Click **"Generate new token (classic)"**
 3. Configure the token:
-   - **Note**: `CodeOwl PR Review`
+   - **Note**: `Code-Tanuki PR Review`
    - **Expiration**: Choose based on your security requirements
    - **Select scopes**:
      - For public repos: Check ✓ `public_repo`
@@ -69,11 +73,11 @@ Classic tokens have broader access but are simpler to set up.
 
 ## Scope Comparison Table
 
-| Token Type | Scope | Access Level | Use Case | Recommended |
-|------------|-------|--------------|----------|-------------|
-| Fine-grained | Pull requests: Read and write | Specific repos only | Production use | ✅ Yes |
-| Classic | `public_repo` | All public repos | Public repos only | Acceptable |
-| Classic | `repo` | All private repos | Private repos | Less secure |
+| Token Type   | Scope                         | Access Level        | Use Case          | Recommended |
+| ------------ | ----------------------------- | ------------------- | ----------------- | ----------- |
+| Fine-grained | Pull requests: Read and write | Specific repos only | Production use    | ✅ Yes      |
+| Classic      | `public_repo`                 | All public repos    | Public repos only | Acceptable  |
+| Classic      | `repo`                        | All private repos   | Private repos     | Less secure |
 
 ## Configuration
 
@@ -123,6 +127,7 @@ yarn dev
 4. Wait ~500ms - the PR title should appear below the URL field
 
 **Success:**
+
 ```
 ┌─────────────────────────────────────┐
 │ Pull Request                        │
@@ -131,6 +136,7 @@ yarn dev
 ```
 
 **Error (token not configured):**
+
 ```
 ┌─────────────────────────────────────┐
 │ Error                               │
@@ -155,6 +161,7 @@ yarn dev
 **Cause:** `GITHUB_TOKEN` is not set in `.env`
 
 **Solution:**
+
 1. Create `.env` file if it doesn't exist
 2. Add `GITHUB_TOKEN=your_token_here`
 3. Restart the dev server
@@ -164,6 +171,7 @@ yarn dev
 **Cause:** Invalid or expired token
 
 **Solution:**
+
 1. Generate a new token following the steps above
 2. Update `GITHUB_TOKEN` in `.env`
 3. Restart the dev server
@@ -173,6 +181,7 @@ yarn dev
 **Cause:** Insufficient permissions
 
 **Solution:**
+
 1. For fine-grained tokens: Ensure **Pull requests** is set to **Read and write**
 2. For classic tokens: Ensure `public_repo` or `repo` scope is selected
 3. Regenerate token with correct permissions
@@ -182,17 +191,18 @@ yarn dev
 **Cause:** Too many API requests
 
 **Solution:**
+
 - Authenticated requests have higher rate limits (5,000/hour vs 60/hour)
 - Wait for the rate limit to reset
 - Check your token is properly configured
 
 ## API Rate Limits
 
-| Authentication | Rate Limit | Notes |
-|----------------|------------|-------|
-| Authenticated | 5,000 requests/hour | With valid token |
-| Unauthenticated | 60 requests/hour | Without token |
-| Fine-grained token | 5,000 requests/hour | Per repository |
+| Authentication     | Rate Limit          | Notes            |
+| ------------------ | ------------------- | ---------------- |
+| Authenticated      | 5,000 requests/hour | With valid token |
+| Unauthenticated    | 60 requests/hour    | Without token    |
+| Fine-grained token | 5,000 requests/hour | Per repository   |
 
 ## Additional Resources
 

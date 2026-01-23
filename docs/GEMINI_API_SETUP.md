@@ -1,6 +1,6 @@
 # Gemini API Setup Guide
 
-This guide will help you configure the Gemini AI integration for CodeOwl.
+This guide will help you configure the Gemini AI integration for Code-Tanuki.
 
 ## Prerequisites
 
@@ -33,7 +33,7 @@ Add the following to your `.env.local` file:
 # Gemini API
 GEMINI_API_KEY=your-gemini-api-key
 GEMINI_MODEL_DEFAULT=gemini-2.0-flash
-GEMINI_MAX_TOKENS=4096
+GEMINI_MAX_TOKENS=8192
 GEMINI_TEMPERATURE=0.3
 ```
 

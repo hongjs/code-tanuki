@@ -1,4 +1,4 @@
-# 🦉 CodeOwl - AI-Powered Code Review
+# Code-Tanuki - AI-Powered Code Review
 
 > Intelligent PR review automation powered by Claude AI & Google Gemini, seamlessly integrated with GitHub and Jira.
 
@@ -11,7 +11,7 @@
 
 ## Overview
 
-CodeOwl is an AI-powered code review tool designed for development teams. It leverages Claude AI or Google Gemini to provide intelligent, context-aware code reviews on your GitHub pull requests, with optional Jira integration for requirement validation.
+Code-Tanuki is an AI-powered code review tool designed for development teams. It leverages Claude AI or Google Gemini to provide intelligent, context-aware code reviews on your GitHub pull requests, with optional Jira integration for requirement validation.
 
 ### Key Features
 
@@ -28,6 +28,7 @@ CodeOwl is an AI-powered code review tool designed for development teams. It lev
 ## Tech Stack
 
 ### Frontend
+
 - **Next.js 16** with App Router
 - **React 19** with TypeScript
 - **Material-UI (MUI)** for component library
@@ -35,6 +36,7 @@ CodeOwl is an AI-powered code review tool designed for development teams. It lev
 - **Emotion** for styled components
 
 ### Backend
+
 - **Next.js API Routes** for serverless functions
 - **Anthropic SDK** for Claude AI integration
 - **Google Generative AI SDK** for Gemini integration
@@ -44,6 +46,7 @@ CodeOwl is an AI-powered code review tool designed for development teams. It lev
 - **Zod** for runtime validation
 
 ### Infrastructure
+
 - **Docker** for containerization
 - **Docker Compose** for orchestration
 - **JSON Storage** with abstraction for future DB migration
@@ -71,8 +74,8 @@ Before you begin, you'll need:
 ### 1. Clone and Install
 
 ```bash
-git clone https://github.com/hongjs/codeowl.git
-cd codeowl
+git clone https://github.com/hongjs/code-tanuki.git
+cd code-tanuki
 npm install
 ```
 
@@ -132,14 +135,14 @@ docker-compose down
 
 ```bash
 # Build image
-docker build -t codeowl:latest .
+docker build -t code-tanuki:latest .
 
 # Run container
 docker run -p 3000:3000 \
   --env-file .env \
   -v ./data:/app/data \
   -v ./logs:/app/logs \
-  codeowl:latest
+  code-tanuki:latest
 ```
 
 ## Usage
@@ -158,7 +161,7 @@ docker run -p 3000:3000 \
 
 ### Review Process
 
-CodeOwl will:
+Code-Tanuki will:
 
 1. **Fetch PR Data** - Download diff, files, and metadata from GitHub
 2. **Extract Jira Context** - Get ticket details and acceptance criteria (if configured)
@@ -173,7 +176,7 @@ CodeOwl will:
 
 ### Jira Ticket Auto-Extraction
 
-CodeOwl automatically extracts Jira ticket IDs from PR titles:
+Code-Tanuki automatically extracts Jira ticket IDs from PR titles:
 
 ```
 feat(BYD-1234): Add user authentication → Extracts BYD-1234
@@ -185,6 +188,7 @@ Supported prefixes: `feat`, `fix`, `chore`, `docs`, `style`, `refactor`, `test`,
 ### Viewing History
 
 Navigate to the **History** page to:
+
 - View all completed reviews
 - Filter by status, model, or date
 - Search by PR number or repository
@@ -193,7 +197,7 @@ Navigate to the **History** page to:
 ## Project Structure
 
 ```
-codeowl/
+code-tanuki/
 ├── src/
 │   ├── app/                      # Next.js App Router
 │   │   ├── review/              # Review page
@@ -234,12 +238,14 @@ codeowl/
 #### AI Provider (At least one required)
 
 **Claude AI:**
+
 - `ANTHROPIC_API_KEY` - Your Claude API key (starts with `sk-ant-`)
 - `CLAUDE_MODEL_DEFAULT` - Default Claude model (default: `claude-haiku-4-5-20251001`)
-- `CLAUDE_MAX_TOKENS` - Max output tokens (default: `4096`)
+- `CLAUDE_MAX_TOKENS` - Max output tokens (default: `8192`)
 - `CLAUDE_TEMPERATURE` - AI temperature 0-1 (default: `0.3`)
 
 **Google Gemini (Optional):**
+
 - `GEMINI_API_KEY` - Your Gemini API key (optional)
 - `GEMINI_MODEL_DEFAULT` - Default Gemini model (default: `gemini-2.0-flash`)
 - `GEMINI_MAX_TOKENS` - Max output tokens (default: `2048`, recommended for free tier)
@@ -269,27 +275,27 @@ codeowl/
 
 #### Claude Models (Anthropic)
 
-| Model | ID | Best For | Speed | Max Tokens |
-|-------|----|---------:|------:|-----------:|
-| Claude Opus 4.5 | `claude-opus-4-5-20251101` | Complex reviews, highest accuracy | Slower | 8192 |
-| Claude Sonnet 4.5 | `claude-sonnet-4-5-20250929` | Balanced performance | Medium | 8192 |
-| Claude Haiku 4.5 | `claude-haiku-4-5-20251001` | Quick reviews, simple PRs | Fastest | 4096 |
+| Model             | ID                           |                          Best For |   Speed | Max Tokens |
+| ----------------- | ---------------------------- | --------------------------------: | ------: | ---------: |
+| Claude Opus 4.5   | `claude-opus-4-5-20251101`   | Complex reviews, highest accuracy |  Slower |       8192 |
+| Claude Sonnet 4.5 | `claude-sonnet-4-5-20250929` |              Balanced performance |  Medium |       8192 |
+| Claude Haiku 4.5  | `claude-haiku-4-5-20251001`  |         Quick reviews, simple PRs | Fastest |       8192 |
 
 #### Gemini Models (Google)
 
-| Model | ID | Best For | Speed | Max Tokens* |
-|-------|----|---------:|------:|-----------:|
-| Gemini 3 Pro Preview | `gemini-3-pro-preview` | Complex reasoning, thorough reviews | Medium | 2048** |
-| Gemini 3 Flash Preview | `gemini-3-flash-preview` | Fast reviews, efficient | Fast | 2048** |
+| Model                  | ID                       |                            Best For |  Speed | Max Tokens\* |
+| ---------------------- | ------------------------ | ----------------------------------: | -----: | -----------: |
+| Gemini 3 Pro Preview   | `gemini-3-pro-preview`   | Complex reasoning, thorough reviews | Medium |     2048\*\* |
+| Gemini 3 Flash Preview | `gemini-3-flash-preview` |             Fast reviews, efficient |   Fast |     2048\*\* |
 
 **Note:** You can use either Claude or Gemini models. Configure the appropriate API key in your `.env` file.
 
 \* Max output tokens (configurable)
-\** Recommended setting for free tier to avoid response truncation. Paid tier supports higher limits.
+\*\* Recommended setting for free tier to avoid response truncation. Paid tier supports higher limits.
 
 ### Getting Your Gemini API Key (Free Tier Available!)
 
-Google Gemini offers a **free tier** that's perfect for trying out CodeOwl:
+Google Gemini offers a **free tier** that's perfect for trying out Code-Tanuki:
 
 1. **Visit Google AI Studio**: https://aistudio.google.com/app/apikey
 2. **Sign in** with your Google account
@@ -300,39 +306,43 @@ Google Gemini offers a **free tier** that's perfect for trying out CodeOwl:
    ```
 
 **Free Tier Limits:**
+
 - 15 requests per minute
 - 1 million tokens per minute
 - 1,500 requests per day
 - Recommended max output tokens: 2048
 
 **Important**: To avoid response truncation on the free tier, make sure to set:
+
 ```env
 GEMINI_MAX_TOKENS=2048
 ```
 
 For larger PRs (>500 lines), you may get partial reviews. Consider:
+
 - Using Claude AI instead
 - Breaking PRs into smaller chunks
 - Upgrading to Gemini's paid tier
 
 ### Choosing Between Claude and Gemini
 
-| Feature | Claude | Gemini |
-|---------|--------|--------|
-| **Cost** | Paid (usage-based) | Free tier available |
-| **Best Models** | Opus 4.5, Sonnet 4.5 | Gemini 3 Pro Preview |
-| **Speed** | Very fast (Haiku) | Very fast (Flash) |
-| **Code Understanding** | Excellent | Excellent |
-| **Context Window** | 200K tokens | 2M tokens (Gemini 3) |
-| **Best For** | Production workloads | Testing, small teams |
+| Feature                | Claude               | Gemini               |
+| ---------------------- | -------------------- | -------------------- |
+| **Cost**               | Paid (usage-based)   | Free tier available  |
+| **Best Models**        | Opus 4.5, Sonnet 4.5 | Gemini 3 Pro Preview |
+| **Speed**              | Very fast (Haiku)    | Very fast (Flash)    |
+| **Code Understanding** | Excellent            | Excellent            |
+| **Context Window**     | 200K tokens          | 2M tokens (Gemini 3) |
+| **Best For**           | Production workloads | Testing, small teams |
 
 **Recommendation:**
-- **Start with Gemini** (free tier) to test CodeOwl
+
+- **Start with Gemini** (free tier) to test Code-Tanuki
 - **Upgrade to Claude** for production use or larger teams
 
 ## Storage
 
-CodeOwl uses JSON file storage by default with an abstraction layer for easy database migration:
+Code-Tanuki uses JSON file storage by default with an abstraction layer for easy database migration:
 
 - **Individual Reviews**: `data/reviews/{timestamp}-{prNumber}.json`
 - **Aggregated Index**: `data/reviews/all-reviews.json`
@@ -454,6 +464,7 @@ GEMINI_MAX_TOKENS=1024
 ```
 
 **Alternative**: Switch to Claude AI for larger PRs:
+
 ```env
 ANTHROPIC_API_KEY=sk-ant-your_key_here
 ```
@@ -502,9 +513,10 @@ ISC
 ## Support
 
 For issues and questions:
-- GitHub Issues: https://github.com/hongjs/codeowl/issues
+
+- GitHub Issues: https://github.com/hongjs/code-tanuki/issues
 - Documentation: See `/docs` folder
 
 ---
 
-**Made with ❤️ by the CodeOwl team**
+**Made with ❤️ by the Code-Tanuki team**

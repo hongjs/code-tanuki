@@ -575,7 +575,7 @@ export function ReviewForm() {
                 <Grid item xs={12} md={4}>
                   <TextField
                     label="Max Tokens"
-                    placeholder="e.g. 4096"
+                    placeholder="e.g. 8192"
                     value={maxTokens}
                     onChange={(e) => handleInputChange('maxTokens', e.target.value)}
                     disabled={status !== 'idle'}

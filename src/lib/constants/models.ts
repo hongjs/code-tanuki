@@ -19,7 +19,7 @@ export const CLAUDE_MODELS: AIModel[] = [
     id: 'claude-haiku-4-5-20251001',
     name: 'Claude Haiku 4.5',
     description: 'Fastest, good for simple reviews',
-    maxTokens: 4096,
+    maxTokens: 8192,
     provider: 'claude',
   },
 ];

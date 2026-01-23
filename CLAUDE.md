@@ -1,10 +1,10 @@
-# Claude Code Guide for CodeOwl
+# Claude Code Guide for Code-Tanuki
 
-> A comprehensive guide for developers using Claude Code to work with the CodeOwl codebase.
+> A comprehensive guide for developers using Claude Code to work with the Code-Tanuki codebase.
 
 ## Project Overview
 
-CodeOwl is an AI-powered code review tool built with Next.js 16, TypeScript, and Material-UI. It integrates with GitHub, Jira, and Claude AI to automate code reviews on pull requests.
+Code-Tanuki is an AI-powered code review tool built with Next.js 16, TypeScript, and Material-UI. It integrates with GitHub, Jira, and Claude AI to automate code reviews on pull requests.
 
 ### Quick Facts
 
@@ -126,6 +126,7 @@ Handles the **approval step** after preview:
 ### Component: `ReviewForm.tsx`
 
 Main review form with:
+
 - PR URL input (auto-fetches PR title)
 - Jira ticket ID input (auto-extraction from PR title)
 - Additional prompt input
@@ -134,6 +135,7 @@ Main review form with:
 - Preview dialog integration
 
 **State Flow**:
+
 ```
 idle → fetching-github → fetching-jira → ai-review → approval → posting-comments → success
 ```
@@ -141,18 +143,21 @@ idle → fetching-github → fetching-jira → ai-review → approval → postin
 ### Clients: `lib/api/claude.ts` and `lib/api/gemini.ts`
 
 **Claude AI client** (`claude.ts`):
+
 - Streaming support (currently unused)
 - Token counting
 - Error handling
 - Retry logic via `withRetry`
 
 **Gemini AI client** (`gemini.ts`):
+
 - JSON mode with structured output
 - Response truncation handling (for free tier)
 - Automatic salvage of incomplete JSON
 - Retry logic via `withRetry`
 
 **Key Method** (both): `reviewPR()` / `reviewPullRequest()`
+
 - Takes PR diff, files, Jira context
 - Returns structured review comments
 - Uses prompt from `lib/constants/prompts.ts`
@@ -172,12 +177,14 @@ interface IStorageAdapter {
 ```
 
 **Files**:
+
 - `data/reviews/{timestamp}-{prNumber}.json` - Individual reviews
 - `data/reviews/all-reviews.json` - Aggregated index
 
 ### Validation: `lib/utils/env.ts`
 
 Zod schema for environment validation:
+
 - Runs at server startup
 - Throws error if required variables missing
 - Type-safe access via exported `env` object
@@ -192,6 +199,7 @@ const apiKey = env.ANTHROPIC_API_KEY; // Type-safe!
 ### Adding a New AI Model
 
 1. **Update model list**: `src/lib/constants/models.ts`
+
    ```typescript
    export const ALL_AI_MODELS: AIModel[] = [
      // ... existing models
@@ -200,7 +208,7 @@ const apiKey = env.ANTHROPIC_API_KEY; // Type-safe!
        name: 'New Model Name',
        provider: 'anthropic' | 'google',
        description: '...',
-       maxTokens: 4096,
+       maxTokens: 8192,
      },
    ];
    ```
@@ -212,6 +220,7 @@ const apiKey = env.ANTHROPIC_API_KEY; // Type-safe!
 ### Adding a New Review Step
 
 1. **Update status type**: `src/types/review.ts`
+
    ```typescript
    export type ReviewStatus =
      | 'idle'
@@ -231,6 +240,7 @@ const apiKey = env.ANTHROPIC_API_KEY; // Type-safe!
 ### Modifying the AI Prompt
 
 1. **Edit prompt**: `src/lib/constants/prompts.ts`
+
    ```typescript
    export const REVIEW_PROMPT = `
      Your updated instructions here...
@@ -242,6 +252,7 @@ const apiKey = env.ANTHROPIC_API_KEY; // Type-safe!
 ### Adding Jira Custom Fields
 
 1. **Update Jira types**: `src/types/jira.ts`
+
    ```typescript
    export interface JiraTicket {
      // ... existing fields
@@ -258,6 +269,7 @@ const apiKey = env.ANTHROPIC_API_KEY; // Type-safe!
 ### Migrating to a Database
 
 1. **Create adapter**: `src/lib/storage/postgres-storage.ts`
+
    ```typescript
    export class PostgresStorageAdapter implements IStorageAdapter {
      async saveReview(review: ReviewRecord): Promise<void> {
@@ -276,6 +288,7 @@ const apiKey = env.ANTHROPIC_API_KEY; // Type-safe!
 ### Exploring the Codebase
 
 Ask Claude Code to:
+
 - "Show me how GitHub PR fetching works"
 - "Explain the review orchestration flow"
 - "Find all files related to Jira integration"
@@ -284,6 +297,7 @@ Ask Claude Code to:
 ### Making Changes
 
 When asking Claude Code to make changes:
+
 - "Add error handling for rate limiting in GitHub client"
 - "Update the UI to show estimated review time"
 - "Add a new filter to the history page"
@@ -292,6 +306,7 @@ When asking Claude Code to make changes:
 ### Debugging
 
 Useful prompts:
+
 - "Why is the review stuck at 'fetching-jira' status?"
 - "Debug the duplicate review detection logic"
 - "Fix the type error in ReviewForm.tsx"
@@ -300,6 +315,7 @@ Useful prompts:
 ### Code Review
 
 Ask Claude Code to:
+
 - "Review my changes to the Claude client"
 - "Check if my new component follows the existing patterns"
 - "Suggest improvements for this API route"
@@ -378,10 +394,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, data: result });
   } catch (error) {
     logger.error('Error message', { error });
-    return NextResponse.json(
-      { error: 'Error message' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Error message' }, { status: 500 });
   }
 }
 ```
@@ -423,6 +436,7 @@ All env vars are validated at startup via `src/lib/utils/env.ts` using Zod schem
 ### Manual Testing
 
 1. **Set up test environment**:
+
    ```bash
    cp .env.example .env
    # Fill in real API keys
@@ -461,6 +475,7 @@ npm run lint
 **Problem**: Response truncation on Gemini free tier
 
 **Error Message**:
+
 ```
 Failed to parse Gemini response as JSON. Response may be truncated.
 ```
@@ -470,6 +485,7 @@ Failed to parse Gemini response as JSON. Response may be truncated.
 **Solution**:
 
 1. **Reduce max tokens** in `.env`:
+
    ```env
    GEMINI_MAX_TOKENS=2048  # Default, safe for free tier
    # Or even lower for very large PRs:
@@ -482,6 +498,7 @@ Failed to parse Gemini response as JSON. Response may be truncated.
    - Removes incomplete string fields
 
 3. **Alternative**: Use Claude AI for larger PRs
+
    ```env
    ANTHROPIC_API_KEY=sk-ant-your_key_here
    ```
@@ -539,6 +556,7 @@ echo "[]" > data/reviews/all-reviews.json
 
 **Authentication**: Personal Access Token
 **Endpoints Used**:
+
 - `GET /repos/{owner}/{repo}/pulls/{number}` - PR details
 - `GET /repos/{owner}/{repo}/pulls/{number}/files` - Changed files
 - `POST /repos/{owner}/{repo}/pulls/{number}/comments` - Inline comments
@@ -549,6 +567,7 @@ echo "[]" > data/reviews/all-reviews.json
 
 **Authentication**: Basic Auth (email + API token)
 **Endpoints Used**:
+
 - `GET /rest/api/3/issue/{issueKey}` - Ticket details
 - `POST /rest/api/3/issue/{issueKey}/comment` - Post comment
 
@@ -559,6 +578,7 @@ echo "[]" > data/reviews/all-reviews.json
 **Authentication**: API key (X-API-Key header)
 **Model**: Configurable (Opus 4, Sonnet 4, Haiku 4)
 **Features Used**:
+
 - Messages API (non-streaming)
 - System prompts
 - JSON mode (for structured output)
@@ -568,6 +588,7 @@ echo "[]" > data/reviews/all-reviews.json
 ### API Timeouts
 
 All external API calls use `withRetry()` wrapper:
+
 - Max 3 attempts (configurable)
 - Exponential backoff
 - 1s base delay, 10s max delay
@@ -575,6 +596,7 @@ All external API calls use `withRetry()` wrapper:
 ### Large PRs
 
 Claude has token limits:
+
 - Opus 4: 200K input, 16K output
 - Sonnet 4: 200K input, 16K output
 - Haiku 4: 200K input, 8K output
@@ -584,6 +606,7 @@ For very large diffs, truncation may be needed (not currently implemented).
 ### Storage Performance
 
 JSON storage is simple but not scalable:
+
 - All reviews loaded into memory for `/api/history`
 - No indexing or querying capabilities
 - Consider database migration for >10K reviews
@@ -617,6 +640,7 @@ docker-compose up -d
 ```
 
 Includes:
+
 - Health checks at `/api/health`
 - Automatic restart on failure
 - Volume-mounted persistence
@@ -625,6 +649,7 @@ Includes:
 ### Environment
 
 Ensure all environment variables set in production:
+
 - Use secrets management (AWS Secrets Manager, etc.)
 - Never expose API keys in client-side code
 - Set `NODE_ENV=production`

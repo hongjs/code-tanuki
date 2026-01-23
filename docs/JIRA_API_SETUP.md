@@ -1,10 +1,10 @@
 # Jira API Setup Guide
 
-This document explains how to configure Jira API access for CodeOwl's ticket integration functionality.
+This document explains how to configure Jira API access for Code-Tanuki's ticket integration functionality.
 
 ## Overview
 
-Jira integration in CodeOwl is **optional** but recommended. It allows the tool to:
+Jira integration in Code-Tanuki is **optional** but recommended. It allows the tool to:
 
 - Fetch ticket details (summary, description, acceptance criteria)
 - Validate PR implementation against requirements
@@ -12,7 +12,7 @@ Jira integration in CodeOwl is **optional** but recommended. It allows the tool 
 
 ## Required Jira API Operations
 
-CodeOwl uses the following Jira REST API operations:
+Code-Tanuki uses the following Jira REST API operations:
 
 - **`GET /rest/api/3/issue/{ticketId}`** - Fetch issue details
   - Summary, description, acceptance criteria
@@ -29,10 +29,12 @@ Jira API tokens are **account-based** and inherit your user permissions. The min
 ### For Jira Cloud (Atlassian Cloud)
 
 **Project Permissions:**
+
 - ✓ **Browse Projects** - View issues in the project
 - ✓ **Add Comments** - Add comments to issues
 
 **Issue-Level Access:**
+
 - Your account must have access to view the specific issues/tickets
 - Typically granted through project membership or role assignment
 
@@ -55,7 +57,7 @@ To verify your account has the required permissions:
 
 2. **Create API Token**
    - Click **"Create API token"**
-   - Enter a label: `CodeOwl PR Review Tool`
+   - Enter a label: `Code-Tanuki PR Review Tool`
    - Click **"Create"**
 
 3. **Copy the Token**
@@ -77,7 +79,7 @@ For self-hosted Jira instances:
 
 2. **Create Token**
    - Click **"Create token"**
-   - Name: `CodeOwl PR Review`
+   - Name: `Code-Tanuki PR Review`
    - Expiry: Choose based on security policy
 
 3. **Copy and Store**
@@ -91,14 +93,17 @@ For self-hosted Jira instances:
 You'll need three pieces of information:
 
 **a) Jira Base URL**
+
 - Jira Cloud: `https://your-domain.atlassian.net`
 - Jira Server: `https://jira.yourcompany.com`
 
 **b) Your Jira Email**
+
 - The email address associated with your Jira account
 - Example: `john.doe@company.com`
 
 **c) Your API Token**
+
 - The token you created in the previous step
 
 ### 2. Update `.env` File
@@ -113,6 +118,7 @@ JIRA_API_TOKEN=your_api_token_here
 ```
 
 **Important Notes:**
+
 - `JIRA_BASE_URL` should NOT end with a trailing slash
 - Use the email address you log into Jira with
 - Keep the API token secret and never commit it to version control
@@ -139,6 +145,7 @@ yarn dev
 **Expected Behavior:**
 
 ✅ **Success:**
+
 ```
 Step: Fetch Jira Ticket ✓
 - Successfully fetched ticket PROJ-123
@@ -147,11 +154,13 @@ Step: Fetch Jira Ticket ✓
 ```
 
 ❌ **Error (invalid token):**
+
 ```
 Jira: Failed to fetch ticket: Authentication failed
 ```
 
 ❌ **Error (insufficient permissions):**
+
 ```
 Jira: Failed to fetch ticket: You do not have permission to view this issue
 ```
@@ -171,7 +180,7 @@ Posted 5 review comments.
 
 ## Jira Ticket ID Extraction
 
-CodeOwl automatically extracts Jira ticket IDs from PR titles using these patterns:
+Code-Tanuki automatically extracts Jira ticket IDs from PR titles using these patterns:
 
 ### Supported Formats
 
@@ -183,9 +192,11 @@ docs(DOC-001): Update README              → DOC-001
 ```
 
 **Supported Prefixes:**
+
 - `feat`, `fix`, `chore`, `docs`, `style`, `refactor`, `test`, `build`, `ci`, `perf`
 
 **Ticket ID Format:**
+
 - 2-10 uppercase letters
 - Hyphen
 - 1-6 digits
@@ -202,6 +213,7 @@ You can also manually enter a Jira ticket ID in the form, which overrides auto-e
 **Cause:** Invalid credentials
 
 **Solution:**
+
 1. Verify `JIRA_EMAIL` matches your Jira account email
 2. Verify `JIRA_API_TOKEN` is correct (regenerate if needed)
 3. Check `JIRA_BASE_URL` is correct (no trailing slash)
@@ -212,6 +224,7 @@ You can also manually enter a Jira ticket ID in the form, which overrides auto-e
 **Cause:** Insufficient permissions
 
 **Solution:**
+
 1. Verify you can manually view the ticket in Jira
 2. Ask your Jira admin to grant you project access
 3. Ensure you're a member of the project
@@ -221,6 +234,7 @@ You can also manually enter a Jira ticket ID in the form, which overrides auto-e
 **Cause:** Ticket ID not found or deleted
 
 **Solution:**
+
 1. Verify the ticket ID is correct
 2. Check the ticket exists in Jira
 3. Ensure you're using the right Jira instance
@@ -230,13 +244,15 @@ You can also manually enter a Jira ticket ID in the form, which overrides auto-e
 **Cause:** Missing comment permission
 
 **Solution:**
+
 1. Ask your Jira admin to grant "Add Comments" permission
 2. Verify you can manually comment on tickets
 
 ### Jira Integration Disabled
 
 If Jira is not configured:
-- CodeOwl will skip Jira ticket fetching
+
+- Code-Tanuki will skip Jira ticket fetching
 - Reviews will proceed without ticket context
 - No comments will be posted to Jira
 - This is completely fine for GitHub-only workflows
@@ -261,7 +277,7 @@ If Jira is not configured:
   - Enterprise: Custom limits
 
 - **Per-user limits:** API tokens have same limits as user actions
-- **Backoff:** CodeOwl implements automatic retry with exponential backoff
+- **Backoff:** Code-Tanuki implements automatic retry with exponential backoff
 
 ### Jira Server/Data Center
 
@@ -278,24 +294,25 @@ The current implementation treats Jira as optional:
 3. The review uses only GitHub PR information
 
 This allows you to:
-- Use CodeOwl without Jira
+
+- Use Code-Tanuki without Jira
 - Run reviews even if Jira is temporarily unavailable
 - Gradually roll out Jira integration
 
 ## Fields Fetched from Jira
 
-CodeOwl fetches the following fields from Jira tickets:
+Code-Tanuki fetches the following fields from Jira tickets:
 
-| Field | API Field | Used For |
-|-------|-----------|----------|
-| Ticket Key | `key` | Identification |
-| Summary | `fields.summary` | Requirements context |
-| Description | `fields.description` | Detailed requirements |
-| Acceptance Criteria | `fields.description` (extracted) | Validation criteria |
-| Status | `fields.status.name` | Ticket state |
-| Type | `fields.issuetype.name` | Context (bug, story, etc.) |
-| Priority | `fields.priority.name` | Review prioritization |
-| Assignee | `fields.assignee` | Developer context |
+| Field               | API Field                        | Used For                   |
+| ------------------- | -------------------------------- | -------------------------- |
+| Ticket Key          | `key`                            | Identification             |
+| Summary             | `fields.summary`                 | Requirements context       |
+| Description         | `fields.description`             | Detailed requirements      |
+| Acceptance Criteria | `fields.description` (extracted) | Validation criteria        |
+| Status              | `fields.status.name`             | Ticket state               |
+| Type                | `fields.issuetype.name`          | Context (bug, story, etc.) |
+| Priority            | `fields.priority.name`           | Review prioritization      |
+| Assignee            | `fields.assignee`                | Developer context          |
 
 These fields are included in the AI review prompt to help Claude understand requirements and validate implementation.
 
@@ -314,4 +331,4 @@ If you encounter issues not covered here:
 2. Verify your Jira credentials in `.env`
 3. Test access by manually viewing/commenting on the ticket in Jira
 4. Check Jira API status: https://status.atlassian.com/
-5. Open an issue: https://github.com/hongjs/codeowl/issues
+5. Open an issue: https://github.com/hongjs/code-tanuki/issues

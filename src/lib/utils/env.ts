@@ -17,7 +17,7 @@ const envSchema = z.object({
     .string()
     .transform(Number)
     .pipe(z.number().int().positive())
-    .default('4096'),
+    .default('8192'),
   CLAUDE_TEMPERATURE: z
     .string()
     .transform(Number)
@@ -30,7 +30,7 @@ const envSchema = z.object({
     .string()
     .transform(Number)
     .pipe(z.number().int().positive())
-    .default('4096'),
+    .default('8192'),
   GEMINI_TEMPERATURE: z
     .string()
     .transform(Number)
