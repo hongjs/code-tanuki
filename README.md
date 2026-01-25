@@ -13,6 +13,9 @@
 
 Code-Tanuki is an AI-powered code review tool designed for development teams. It leverages Claude AI or Google Gemini to provide intelligent, context-aware code reviews on your GitHub pull requests, with optional Jira integration for requirement validation.
 
+<img width="974" height="667" alt="image" src="https://github.com/user-attachments/assets/8a6c51c6-ecdf-4d7d-a478-5772037e7f13" />
+
+
 ### Key Features
 
 - **🤖 Multi-AI Support** - Choose between Claude AI (Opus, Sonnet, Haiku) or Google Gemini (3 Pro, 3 Flash)
