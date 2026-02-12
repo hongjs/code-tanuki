@@ -2,8 +2,8 @@ import { AIModel, AIProvider } from '@/types/ai';
 
 export const CLAUDE_MODELS: AIModel[] = [
   {
-    id: 'claude-opus-4-5-20251101',
-    name: 'Claude Opus 4.5',
+    id: 'claude-opus-4-6',
+    name: 'Claude Opus 4.6',
     description: 'Most capable model, best for complex code review',
     maxTokens: 8192,
     provider: 'claude',

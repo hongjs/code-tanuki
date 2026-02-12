@@ -68,12 +68,13 @@ export class ClaudeClient {
           let reviewResponse: ClaudeReviewResponse;
           try {
             // Try to extract JSON from markdown code blocks if present
-            const jsonMatch = content.text.match(/```json\s*([\s\S]*?)\s*```/);
+            // Use greedy match first (complete block), then fallback to open-ended (truncated block)
+            const jsonMatch = content.text.match(/```json\s*([\s\S]*?)\s*```/)
+              || content.text.match(/```json\s*([\s\S]+)/);
             const jsonText = jsonMatch ? jsonMatch[1] : content.text;
 
             reviewResponse = JSON.parse(jsonText.trim()) as ClaudeReviewResponse;
           } catch (parseError) {
-            // Check if response was truncated
             const isTruncated = response.stop_reason === 'max_tokens';
 
             if (isTruncated) {
@@ -82,66 +83,71 @@ export class ClaudeClient {
                 outputTokens: response.usage.output_tokens,
                 stopReason: response.stop_reason,
               });
-
-              // Try to salvage partial response
-              try {
-                let fixedJson = content.text;
-
-                // Remove markdown code blocks
-                fixedJson = fixedJson.replace(/```json\s*/g, '').replace(/```\s*$/g, '');
-
-                // Find the start of the JSON
-                const startIdx = fixedJson.indexOf('{');
-                if (startIdx !== -1) {
-                  fixedJson = fixedJson.substring(startIdx);
-                }
-
-                // Try to close incomplete JSON structures
-                const openBraces = (fixedJson.match(/{/g) || []).length;
-                const closeBraces = (fixedJson.match(/}/g) || []).length;
-                const openBrackets = (fixedJson.match(/\[/g) || []).length;
-                const closeBrackets = (fixedJson.match(/]/g) || []).length;
-
-                // If we have an incomplete comment, remove it
-                if (fixedJson.includes('"body": "') && !fixedJson.match(/"body"\s*:\s*"[^"]*"/)) {
-                  // Find the last complete comment
-                  const lastCompleteComment = fixedJson.lastIndexOf('},');
-                  if (lastCompleteComment > 0) {
-                    fixedJson = fixedJson.substring(0, lastCompleteComment + 1);
-                  }
-                }
-
-                // Close any remaining open structures
-                for (let i = 0; i < openBrackets - closeBrackets; i++) {
-                  fixedJson += ']';
-                }
-                for (let i = 0; i < openBraces - closeBraces; i++) {
-                  fixedJson += '}';
-                }
-
-                reviewResponse = JSON.parse(fixedJson.trim()) as ClaudeReviewResponse;
-                logger.info(`Successfully salvaged truncated Claude response`, {
-                  originalLength: content.text.length,
-                  salvaged: reviewResponse.comments?.length || 0,
-                });
-              } catch (salvageError) {
-                logger.error(`Failed to salvage truncated Claude response`, {
-                  error: salvageError instanceof Error ? salvageError.message : String(salvageError),
-                  responseText: content.text.substring(0, 500),
-                });
-                throw new ClaudeAPIError(
-                  'Claude response was truncated due to token limit. Please increase CLAUDE_MAX_TOKENS or reduce the diff size.',
-                  { parseError: parseError instanceof Error ? parseError.message : String(parseError) }
-                );
-              }
             } else {
-              logger.error(`Failed to parse Claude response as JSON`, {
+              logger.warn(`Claude response contains invalid JSON, attempting to salvage`, {
+                stopReason: response.stop_reason,
                 error: parseError instanceof Error ? parseError.message : String(parseError),
                 responseText: content.text.substring(0, 500),
               });
-              throw new ClaudeAPIError('Failed to parse Claude response as JSON', {
-                parseError: parseError instanceof Error ? parseError.message : String(parseError),
+            }
+
+            // Always try to salvage partial/malformed response
+            try {
+              let fixedJson = content.text;
+
+              // Remove markdown code blocks
+              fixedJson = fixedJson.replace(/```json\s*/g, '').replace(/```\s*$/g, '');
+
+              // Find the start of the JSON
+              const startIdx = fixedJson.indexOf('{');
+              if (startIdx !== -1) {
+                fixedJson = fixedJson.substring(startIdx);
+              }
+
+              // If we have an incomplete string value (unterminated "body"), truncate to last complete comment
+              const lastCompleteComment = fixedJson.lastIndexOf('},');
+              if (lastCompleteComment > 0) {
+                // Check if there's an incomplete object after the last complete one
+                const afterLast = fixedJson.substring(lastCompleteComment + 2);
+                try {
+                  // Test if the remainder is valid JSON-ish
+                  JSON.parse(afterLast.trim().replace(/]\s*}\s*$/, ']}'));
+                } catch {
+                  // Remainder is broken, truncate to last complete comment
+                  fixedJson = fixedJson.substring(0, lastCompleteComment + 1);
+                }
+              }
+
+              // Close any remaining open structures
+              const openBrackets = (fixedJson.match(/\[/g) || []).length;
+              const closeBrackets = (fixedJson.match(/]/g) || []).length;
+              const openBraces = (fixedJson.match(/{/g) || []).length;
+              const closeBraces = (fixedJson.match(/}/g) || []).length;
+
+              for (let i = 0; i < openBrackets - closeBrackets; i++) {
+                fixedJson += ']';
+              }
+              for (let i = 0; i < openBraces - closeBraces; i++) {
+                fixedJson += '}';
+              }
+
+              reviewResponse = JSON.parse(fixedJson.trim()) as ClaudeReviewResponse;
+              logger.info(`Successfully salvaged Claude response`, {
+                originalLength: content.text.length,
+                salvaged: reviewResponse.comments?.length || 0,
+                wasTruncated: isTruncated,
               });
+            } catch (salvageError) {
+              logger.error(`Failed to salvage Claude response`, {
+                error: salvageError instanceof Error ? salvageError.message : String(salvageError),
+                responseText: content.text.substring(0, 500),
+              });
+              throw new ClaudeAPIError(
+                isTruncated
+                  ? 'Claude response was truncated due to token limit. Please increase max tokens or reduce the diff size.'
+                  : 'Failed to parse Claude response as JSON',
+                { parseError: parseError instanceof Error ? parseError.message : String(parseError) }
+              );
             }
           }
 

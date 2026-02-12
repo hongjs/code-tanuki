@@ -1,5 +1,5 @@
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN yarn install --frozen-lockfile
 
 # Copy source code
 COPY . .
@@ -16,7 +16,7 @@ COPY . .
 RUN npm run build
 
 # Production stage
-FROM node:20-alpine AS runner
+FROM node:24-alpine AS runner
 
 WORKDIR /app
 
@@ -28,16 +28,16 @@ ENV PORT=3000
 COPY package*.json ./
 
 # Install production dependencies only
-RUN npm ci --only=production
+RUN yarn install --frozen-lockfile
 
-# Copy built app from builder
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/next.config.js ./
+# Copy built app from builder with proper ownership
+COPY --from=builder --chown=node:node /app/.next ./.next
+# COPY --from=builder --chown=node:node /app/public ./public
+COPY --from=builder --chown=node:node /app/next.config.js ./
 
-# Create data and logs directories
+# Create data and logs directories and ensure proper permissions
 RUN mkdir -p /data/reviews /logs && \
-    chown -R node:node /data /logs
+    chown -R node:node /data /logs /app
 
 # Switch to non-root user
 USER node
@@ -50,4 +50,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
 
 # Start the application
-CMD ["npm", "start"]
+CMD ["yarn", "start"]

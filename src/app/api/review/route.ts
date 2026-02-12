@@ -146,6 +146,7 @@ export async function POST(request: NextRequest) {
             additionalPrompt: validatedRequest.additionalPrompt,
             modelId: validatedRequest.modelId,
             provider: 'gemini',
+            maxTokens: validatedRequest.maxTokens,
           });
         } else {
           const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
@@ -161,6 +162,7 @@ export async function POST(request: NextRequest) {
             jiraTicket,
             additionalPrompt: validatedRequest.additionalPrompt,
             modelId: validatedRequest.modelId,
+            maxTokens: validatedRequest.maxTokens,
           });
         }
 
@@ -212,6 +214,7 @@ export async function POST(request: NextRequest) {
             comments: reviewResponse.comments,
             modelId: validatedRequest.modelId,
             diff: pr.diff, // Send diff to frontend
+            tokensUsed: reviewResponse.tokensUsed,
           });
         }
 

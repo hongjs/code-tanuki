@@ -15,7 +15,6 @@ Code-Tanuki is an AI-powered code review tool designed for development teams. It
 
 <img width="974" height="667" alt="image" src="https://github.com/user-attachments/assets/8a6c51c6-ecdf-4d7d-a478-5772037e7f13" />
 
-
 ### Key Features
 
 - **🤖 Multi-AI Support** - Choose between Claude AI (Opus, Sonnet, Haiku) or Google Gemini (3 Pro, 3 Flash)
@@ -280,7 +279,7 @@ code-tanuki/
 
 | Model             | ID                           |                          Best For |   Speed | Max Tokens |
 | ----------------- | ---------------------------- | --------------------------------: | ------: | ---------: |
-| Claude Opus 4.5   | `claude-opus-4-5-20251101`   | Complex reviews, highest accuracy |  Slower |       8192 |
+| Claude Opus 4.6   | `claude-opus-4-6`            | Complex reviews, highest accuracy |  Slower |       8192 |
 | Claude Sonnet 4.5 | `claude-sonnet-4-5-20250929` |              Balanced performance |  Medium |       8192 |
 | Claude Haiku 4.5  | `claude-haiku-4-5-20251001`  |         Quick reviews, simple PRs | Fastest |       8192 |
 

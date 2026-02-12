@@ -21,7 +21,7 @@ interface ModelSelectorProps {
 
 const modelIcons: Record<string, typeof AutoAwesomeIcon> = {
   // Claude models
-  'claude-opus-4-5-20251101': AutoAwesomeIcon,
+  'claude-opus-4-6': AutoAwesomeIcon,
   'claude-sonnet-4-5-20250929': BoltIcon,
   'claude-haiku-4-5-20251001': SpeedIcon,
   // Gemini models
@@ -31,7 +31,7 @@ const modelIcons: Record<string, typeof AutoAwesomeIcon> = {
 
 const modelGradients: Record<string, string> = {
   // Claude models - Purple/Pink gradient scheme
-  'claude-opus-4-5-20251101': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  'claude-opus-4-6': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
   'claude-sonnet-4-5-20250929': 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
   'claude-haiku-4-5-20251001': 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
   // Gemini models - Blue/Green gradient scheme

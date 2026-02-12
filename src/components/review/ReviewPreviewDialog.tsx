@@ -63,6 +63,7 @@ interface ReviewPreviewDialogProps {
   prTitle: string;
   prUrl: string;
   modelName: string;
+  tokensUsed?: { input: number; output: number };
   isSubmitting: boolean;
 }
 
@@ -133,6 +134,7 @@ export function ReviewPreviewDialog({
   prTitle,
   prUrl,
   modelName,
+  tokensUsed,
   isSubmitting,
 }: ReviewPreviewDialogProps) {
   const theme = useTheme();
@@ -746,11 +748,44 @@ export function ReviewPreviewDialog({
       <Divider />
 
       <DialogActions sx={{ p: 3, gap: 2 }}>
-        <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
-          {comments.length > 0
-            ? `${comments.length} comment(s) will be posted to GitHub`
-            : 'No comments to post'}
-        </Typography>
+        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography variant="caption" color="text.secondary">
+            {comments.length > 0
+              ? `${comments.length} comment(s) will be posted to GitHub`
+              : 'No comments to post'}
+          </Typography>
+          {tokensUsed && (() => {
+            const costIn = (tokensUsed.input / 1_000_000) * 5;
+            const costOut = (tokensUsed.output / 1_000_000) * 25;
+            const totalCost = costIn + costOut;
+            return (
+              <>
+                <Chip
+                  size="small"
+                  label={`Tokens: ${tokensUsed.input.toLocaleString()} in / ${tokensUsed.output.toLocaleString()} out`}
+                  sx={{
+                    height: 22,
+                    fontSize: '0.7rem',
+                    bgcolor: 'rgba(102, 126, 234, 0.1)',
+                    color: '#667eea',
+                    fontWeight: 600,
+                  }}
+                />
+                <Chip
+                  size="small"
+                  label={`~$${totalCost.toFixed(4)}`}
+                  sx={{
+                    height: 22,
+                    fontSize: '0.7rem',
+                    bgcolor: 'rgba(45, 164, 78, 0.1)',
+                    color: '#2da44e',
+                    fontWeight: 600,
+                  }}
+                />
+              </>
+            );
+          })()}
+        </Box>
         <Button
           onClick={onReject}
           variant="outlined"

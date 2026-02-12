@@ -3,20 +3,43 @@ import { annotateDiffWithLineNumbers } from '@/lib/utils/diff';
 
 export const SYSTEM_PROMPT = `You are a senior software engineer doing a professional code review.
 
+CRITICAL: IF A JIRA TICKET IS PROVIDED, ALWAYS FOLLOW THIS 3-PHASE REVIEW PROCESS:
+
+═══════════════════════════════════════════════════════════════════════════════
+PHASE 1: BUSINESS REQUIREMENTS VERIFICATION (Highest Priority)
+═══════════════════════════════════════════════════════════════════════════════
+If Jira ticket with acceptance criteria is present:
+1. Does the code implement all acceptance criteria?
+2. Are all business requirements met?
+3. Are edge cases mentioned in requirements handled?
+4. Does the implementation match the intended design?
+→ Flag CRITICAL issues if acceptance criteria are NOT met
+→ Mark as "critical" severity if requirements are missing
+
+═══════════════════════════════════════════════════════════════════════════════
+PHASE 2: TECHNICAL CORRECTNESS (High Priority)
+═══════════════════════════════════════════════════════════════════════════════
+1. Critical bugs, security vulnerabilities, data loss risks
+2. Logic errors, edge cases, race conditions
+3. Performance issues, memory leaks
+4. Breaking changes, API contract violations
+→ These are ONLY secondary to business requirements verification
+
+═══════════════════════════════════════════════════════════════════════════════
+PHASE 3: CODE QUALITY (Lower Priority)
+═══════════════════════════════════════════════════════════════════════════════
+1. Maintainability concerns
+2. Code style or structure improvements
+3. Type safety enhancements
+
+═══════════════════════════════════════════════════════════════════════════════
 REVIEW QUALITY GUIDELINES:
-- Focus on IMPORTANT issues only: bugs, security risks, performance problems, logic errors
+- Focus on IMPORTANT issues only
 - AVOID trivial comments: minor style preferences, obvious observations, nitpicks
 - Aim for 3-10 meaningful comments per PR (fewer is better)
 - Each comment should provide real value to the developer
 - Keep comment body SHORT and concise (2-3 sentences max)
 - NEVER write lengthy explanations - be direct
-
-Review priorities (in order):
-1. Critical bugs, security vulnerabilities, data loss risks
-2. Logic errors, edge cases, race conditions
-3. Performance issues, memory leaks
-4. Breaking changes, API contract violations
-5. Significant code smells or maintainability concerns
 
 SKIP these (unless explicitly problematic):
 - Minor formatting or style preferences
@@ -78,6 +101,31 @@ Severity levels:
 - warning: Should fix (potential issues, bad practices)
 - suggestion: Nice to have (improvements, optimizations)`;
 
+function cleanPrBody(body: string): string {
+  if (!body) return '';
+
+  let cleaned = body;
+
+  // Remove coderabbit.ai summary section (<!-- This is an auto-generated comment by CodeRabbit --> to end of that block)
+  cleaned = cleaned.replace(/<!-- This is an auto-generated comment by CodeRabbit -->[\s\S]*?(?=\n##|\n---|\Z)/gi, '');
+  // Remove any remaining coderabbit references/sections
+  cleaned = cleaned.replace(/^.*coderabbit\.ai.*$/gim, '');
+  // Remove summary by coderabbit / CodeRabbit sections
+  cleaned = cleaned.replace(/## Summary by CodeRabbit[\s\S]*?(?=\n## |\n---|\s*$)/gi, '');
+
+  // Remove HTML image tags
+  cleaned = cleaned.replace(/<img[^>]*\/?>/gi, '');
+  // Remove markdown image tags ![alt](url)
+  cleaned = cleaned.replace(/!\[[^\]]*\]\([^)]*\)/g, '');
+  // Remove HTML picture/source tags
+  cleaned = cleaned.replace(/<picture[\s\S]*?<\/picture>/gi, '');
+
+  // Clean up excessive blank lines
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+
+  return cleaned.trim();
+}
+
 export function buildReviewPrompt(
   diff: string,
   prTitle: string,
@@ -88,24 +136,33 @@ export function buildReviewPrompt(
   // Annotate the diff with line numbers for accurate AI comments
   const annotatedDiff = annotateDiffWithLineNumbers(diff);
 
+  const cleanedBody = cleanPrBody(prBody);
+
   let prompt = `# Pull Request Review
 
 ## PR Details
 **Title:** ${prTitle}
 **Description:**
-${prBody || 'No description provided'}
+${cleanedBody || 'No description provided'}
 
 `;
 
   if (jiraTicket) {
-    prompt += `## Jira Ticket: ${jiraTicket.key}
+    prompt += `## 🎯 JIRA TICKET (REVIEW THIS FIRST)
+**Ticket:** ${jiraTicket.key}
 **Summary:** ${jiraTicket.summary}
 **Type:** ${jiraTicket.type}
 **Status:** ${jiraTicket.status}
+
 **Description:**
 ${jiraTicket.description || 'No description'}
 
-${jiraTicket.acceptanceCriteria ? `**Acceptance Criteria:**\n${jiraTicket.acceptanceCriteria}\n` : ''}
+${jiraTicket.acceptanceCriteria ? `**Acceptance Criteria (MUST BE MET):**
+${jiraTicket.acceptanceCriteria}
+
+⚠️ **CRITICAL:** Verify the code below implements ALL acceptance criteria.
+If any acceptance criteria are NOT met, flag as CRITICAL severity.
+` : ''}
 `;
   }
 
@@ -118,6 +175,14 @@ ${additionalPrompt}
 
   prompt += `## Code Changes (with line numbers annotated)
 ${annotatedDiff}
+
+## Review Instructions
+${jiraTicket ? `1. FIRST: Verify code meets the Jira acceptance criteria above
+2. SECOND: Check for technical issues (bugs, security, performance)
+3. THIRD: Review code quality
+` : `1. Check for technical issues (bugs, security, performance)
+2. Review code quality and maintainability
+`}
 
 Please provide your review as structured JSON. Use the exact line numbers shown in [LINE N] markers.`;
 

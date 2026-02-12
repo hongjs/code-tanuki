@@ -114,7 +114,7 @@ export function HistoryFilters({
         <InputLabel>Model</InputLabel>
         <Select value={model} onChange={(e) => onModelChange(e.target.value)} label="Model">
           <MenuItem value="">All Models</MenuItem>
-          <MenuItem value="claude-opus-4-5-20251101">Claude Opus 4.5</MenuItem>
+          <MenuItem value="claude-opus-4-6">Claude Opus 4.6</MenuItem>
           <MenuItem value="claude-sonnet-4-5-20250929">Claude Sonnet 4.5</MenuItem>
           <MenuItem value="claude-haiku-4-5-20251001">Claude Haiku 4.5</MenuItem>
           <MenuItem value="gemini-3-pro-preview">Gemini 3 Pro Preview</MenuItem>

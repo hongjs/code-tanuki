@@ -18,6 +18,7 @@ import {
   Chip,
   CircularProgress,
   Grid,
+  Autocomplete,
 } from '@mui/material';
 import { ModelSelector } from './ModelSelector';
 import { ReviewProgress } from './ReviewProgress';
@@ -41,7 +42,7 @@ export function ReviewForm() {
   const [additionalPrompt, setAdditionalPrompt] = useState('');
   const [maxTokens, setMaxTokens] = useState<string>('');
   const [modelId, setModelId] = useState(
-    process.env.NEXT_PUBLIC_CLAUDE_MODEL_DEFAULT || 'claude-opus-4-5-20251101'
+    process.env.NEXT_PUBLIC_CLAUDE_MODEL_DEFAULT || 'claude-opus-4-6'
   );
   const [status, setStatus] = useState<ReviewStatus>('idle');
   const [error, setError] = useState<string>();
@@ -54,6 +55,7 @@ export function ReviewForm() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewComments, setPreviewComments] = useState<ReviewComment[]>([]);
   const [previewDiff, setPreviewDiff] = useState<string>('');
+  const [previewTokensUsed, setPreviewTokensUsed] = useState<{ input: number; output: number } | undefined>();
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const progressTimeoutsRef = useRef<NodeJS.Timeout[]>([]);
   const isCancelledRef = useRef(false);
@@ -274,6 +276,7 @@ export function ReviewForm() {
       if (data.preview) {
         setPreviewComments(data.comments);
         setPreviewDiff(data.diff || '');
+        setPreviewTokensUsed(data.tokensUsed);
         setReviewId(data.reviewId);
         setPreviewOpen(true);
         setStatus('approval'); // Update status to approval
@@ -359,6 +362,7 @@ export function ReviewForm() {
         prTitle={prTitle || 'Pull Request'}
         prUrl={prUrl}
         modelName={ALL_AI_MODELS.find((m) => m.id === modelId)?.name || modelId}
+        tokensUsed={previewTokensUsed}
         isSubmitting={isSubmittingReview}
       />
       {/* Header Section */}
@@ -573,15 +577,31 @@ export function ReviewForm() {
                   />
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <TextField
-                    label="Max Tokens"
-                    placeholder="e.g. 8192"
-                    value={maxTokens}
-                    onChange={(e) => handleInputChange('maxTokens', e.target.value)}
+                  <Autocomplete
+                    freeSolo
+                    options={['4096', '8192', '16384', '24576', '32768']}
+                    value={maxTokens || null}
+                    onChange={(_, newValue) => handleInputChange('maxTokens', newValue || '')}
+                    onInputChange={(_, newValue) => handleInputChange('maxTokens', newValue)}
                     disabled={status !== 'idle'}
-                    helperText="Output limit"
-                    fullWidth
-                    inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
+                    disablePortal
+                    slotProps={{
+                      popper: { sx: { transition: 'none !important' } },
+                      paper: { sx: { transition: 'none !important' } },
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Max Tokens"
+                        placeholder="Default"
+                        helperText="Output limit"
+                        slotProps={{
+                            htmlInput:{
+                              ...params.inputProps, inputMode: 'numeric', pattern: '[0-9]*'
+                            }
+                        }}
+                      />
+                    )}
                   />
                 </Grid>
               </Grid>
