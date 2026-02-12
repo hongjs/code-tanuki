@@ -139,6 +139,7 @@ export class GeminiClient {
               }
 
               reviewResponse = JSON.parse(fixedJson.trim()) as AIReviewResponse;
+              reviewResponse.warning = `AI response contained invalid JSON and was partially recovered. Some comments may be missing.`;
               logger.info(`Successfully salvaged truncated Gemini response with ${reviewResponse.comments?.length || 0} comments`);
             } catch (salvageError) {
               logger.error(`Failed to parse Gemini response as JSON`, {

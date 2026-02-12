@@ -20,6 +20,7 @@ export interface AIReviewResponse {
     input: number;
     output: number;
   };
+  warning?: string;
 }
 
 export interface AIModel {

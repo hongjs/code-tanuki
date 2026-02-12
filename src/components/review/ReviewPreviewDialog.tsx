@@ -64,6 +64,7 @@ interface ReviewPreviewDialogProps {
   prUrl: string;
   modelName: string;
   tokensUsed?: { input: number; output: number };
+  warning?: string;
   isSubmitting: boolean;
 }
 
@@ -135,6 +136,7 @@ export function ReviewPreviewDialog({
   prUrl,
   modelName,
   tokensUsed,
+  warning,
   isSubmitting,
 }: ReviewPreviewDialogProps) {
   const theme = useTheme();
@@ -666,6 +668,11 @@ export function ReviewPreviewDialog({
 
         {/* Main Content - Comments & Code */}
         <Box sx={{ flex: 1, overflowY: 'auto', bgcolor: '#f1f1f1', p: 3 }}>
+          {warning && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              {warning}
+            </Alert>
+          )}
           {selectedFile && (
              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                <Typography variant="h6" sx={{ color: '#24292e', fontWeight: 600 }}>

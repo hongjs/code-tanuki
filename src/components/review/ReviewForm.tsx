@@ -56,6 +56,7 @@ export function ReviewForm() {
   const [previewComments, setPreviewComments] = useState<ReviewComment[]>([]);
   const [previewDiff, setPreviewDiff] = useState<string>('');
   const [previewTokensUsed, setPreviewTokensUsed] = useState<{ input: number; output: number } | undefined>();
+  const [previewWarning, setPreviewWarning] = useState<string | undefined>();
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const progressTimeoutsRef = useRef<NodeJS.Timeout[]>([]);
   const isCancelledRef = useRef(false);
@@ -277,6 +278,7 @@ export function ReviewForm() {
         setPreviewComments(data.comments);
         setPreviewDiff(data.diff || '');
         setPreviewTokensUsed(data.tokensUsed);
+        setPreviewWarning(data.warning);
         setReviewId(data.reviewId);
         setPreviewOpen(true);
         setStatus('approval'); // Update status to approval
@@ -363,6 +365,7 @@ export function ReviewForm() {
         prUrl={prUrl}
         modelName={ALL_AI_MODELS.find((m) => m.id === modelId)?.name || modelId}
         tokensUsed={previewTokensUsed}
+        warning={previewWarning}
         isSubmitting={isSubmittingReview}
       />
       {/* Header Section */}

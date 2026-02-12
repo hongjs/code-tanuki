@@ -215,6 +215,7 @@ export async function POST(request: NextRequest) {
             modelId: validatedRequest.modelId,
             diff: pr.diff, // Send diff to frontend
             tokensUsed: reviewResponse.tokensUsed,
+            warning: reviewResponse.warning,
           });
         }
 

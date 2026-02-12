@@ -17,6 +17,7 @@ export interface ClaudeReviewResponse {
     input: number;
     output: number;
   };
+  warning?: string;
 }
 
 export interface ClaudeModel {

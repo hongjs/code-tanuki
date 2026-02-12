@@ -65,7 +65,7 @@ export class ClaudeClient {
           }
 
           // Parse JSON response
-          let reviewResponse: ClaudeReviewResponse;
+          let reviewResponse: ClaudeReviewResponse = undefined!;
           try {
             // Try to extract JSON from markdown code blocks if present
             // Use greedy match first (complete block), then fallback to open-ended (truncated block)
@@ -96,7 +96,7 @@ export class ClaudeClient {
               let fixedJson = content.text;
 
               // Remove markdown code blocks
-              fixedJson = fixedJson.replace(/```json\s*/g, '').replace(/```\s*$/g, '');
+              fixedJson = fixedJson.replace(/```json\s*/g, '').replace(/```/g, '');
 
               // Find the start of the JSON
               const startIdx = fixedJson.indexOf('{');
@@ -104,34 +104,66 @@ export class ClaudeClient {
                 fixedJson = fixedJson.substring(startIdx);
               }
 
-              // If we have an incomplete string value (unterminated "body"), truncate to last complete comment
-              const lastCompleteComment = fixedJson.lastIndexOf('},');
-              if (lastCompleteComment > 0) {
-                // Check if there's an incomplete object after the last complete one
-                const afterLast = fixedJson.substring(lastCompleteComment + 2);
+              // Strategy: try to find the last complete comment object by looking for
+              // complete JSON objects with closing }
+              // A complete comment looks like: { "path": "...", "line": N, "body": "...", "severity": "..." }
+
+              // Find all complete comment objects (ending with } or },)
+              const lastCompleteObj = fixedJson.lastIndexOf('}');
+              const lastCompleteComma = fixedJson.lastIndexOf('},');
+
+              // Try parsing as-is first (just close structures)
+              let salvaged = false;
+
+              // Attempt 1: Truncate to last },  then close array/object
+              if (!salvaged && lastCompleteComma > 0) {
                 try {
-                  // Test if the remainder is valid JSON-ish
-                  JSON.parse(afterLast.trim().replace(/]\s*}\s*$/, ']}'));
+                  let attempt = fixedJson.substring(0, lastCompleteComma + 1);
+                  attempt += ']}';
+                  reviewResponse = JSON.parse(attempt.trim()) as ClaudeReviewResponse;
+                  fixedJson = attempt;
+                  salvaged = true;
                 } catch {
-                  // Remainder is broken, truncate to last complete comment
-                  fixedJson = fixedJson.substring(0, lastCompleteComment + 1);
+                  // continue to next attempt
                 }
               }
 
-              // Close any remaining open structures
-              const openBrackets = (fixedJson.match(/\[/g) || []).length;
-              const closeBrackets = (fixedJson.match(/]/g) || []).length;
-              const openBraces = (fixedJson.match(/{/g) || []).length;
-              const closeBraces = (fixedJson.match(/}/g) || []).length;
-
-              for (let i = 0; i < openBrackets - closeBrackets; i++) {
-                fixedJson += ']';
+              // Attempt 2: Truncate to last } then close array/object
+              if (!salvaged && lastCompleteObj > 0) {
+                try {
+                  let attempt = fixedJson.substring(0, lastCompleteObj + 1);
+                  // Close remaining open structures
+                  const ob = (attempt.match(/\[/g) || []).length - (attempt.match(/]/g) || []).length;
+                  const oc = (attempt.match(/{/g) || []).length - (attempt.match(/}/g) || []).length;
+                  for (let i = 0; i < ob; i++) attempt += ']';
+                  for (let i = 0; i < oc; i++) attempt += '}';
+                  reviewResponse = JSON.parse(attempt.trim()) as ClaudeReviewResponse;
+                  fixedJson = attempt;
+                  salvaged = true;
+                } catch {
+                  // continue to next attempt
+                }
               }
-              for (let i = 0; i < openBraces - closeBraces; i++) {
-                fixedJson += '}';
+
+              // Attempt 3: Brute force - find all individual complete comment JSON objects via regex
+              if (!salvaged) {
+                const commentRegex = /\{\s*"path"\s*:\s*"[^"]*"\s*,\s*"line"\s*:\s*\d+\s*(?:,\s*"start_line"\s*:\s*\d+\s*)?,\s*"body"\s*:\s*"(?:[^"\\]|\\.)*"\s*,\s*"severity"\s*:\s*"(?:critical|warning|suggestion)"\s*\}/g;
+                const matches = fixedJson.match(commentRegex);
+                if (matches && matches.length > 0) {
+                  fixedJson = `{"comments":[${matches.join(',')}]}`;
+                  reviewResponse = JSON.parse(fixedJson) as ClaudeReviewResponse;
+                  salvaged = true;
+                }
               }
 
-              reviewResponse = JSON.parse(fixedJson.trim()) as ClaudeReviewResponse;
+              if (!salvaged) {
+                throw new Error('No complete comment objects found to salvage');
+              }
+
+              reviewResponse.warning = isTruncated
+                ? `AI response was truncated due to token limit. Some comments may be missing.`
+                : `AI response contained invalid JSON and was partially recovered. Some comments may be missing.`;
+
               logger.info(`Successfully salvaged Claude response`, {
                 originalLength: content.text.length,
                 salvaged: reviewResponse.comments?.length || 0,
