@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   code-tanuki:
     build:
@@ -7,17 +5,15 @@ services:
       dockerfile: Dockerfile
     container_name: code-tanuki
     ports:
-      - '3000:3000'
+      - '8082:3000'
     environment:
       - NODE_ENV=production
       - PORT=3000
     env_file:
-      - .env
+      - .env.local
     volumes:
-      # Persist review data
-      - ./data/reviews:/data/reviews
-      # Persist logs
-      - ./logs:/logs
+      - ~/Git/Hong/code-tanuki/data/prod:/data
+      - ~/Git/Hong/code-tanuki/logs/prod:/logs
     restart: unless-stopped
     healthcheck:
       test:

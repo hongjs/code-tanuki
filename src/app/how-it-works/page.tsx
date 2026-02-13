@@ -78,7 +78,7 @@ export default function HowItWorksPage() {
 
         <Grid container spacing={6}>
           {/* Left Side: Vertical Stepper */}
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Stepper orientation="vertical">
               {steps.map((step, index) => (
                 <Step key={step.label} active expanded>
@@ -111,7 +111,7 @@ export default function HowItWorksPage() {
           </Grid>
 
           {/* Right Side: Features/Benefits */}
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                <Card
                 sx={{

@@ -43,7 +43,7 @@ export class ClaudeClient {
           const maxTokens = request.maxTokens || parseInt(process.env.CLAUDE_MAX_TOKENS || '8192');
           const temperature = parseFloat(process.env.CLAUDE_TEMPERATURE || '0.3');
 
-          const response = await this.client.messages.create({
+          const stream = this.client.messages.stream({
             model: request.modelId,
             max_tokens: maxTokens,
             temperature,
@@ -56,8 +56,10 @@ export class ClaudeClient {
             ],
           });
 
+          const finalMessage = await stream.finalMessage();
+
           // Extract text content from response
-          const content = response.content[0];
+          const content = finalMessage.content[0];
           if (content.type !== 'text') {
             throw new ClaudeAPIError('Unexpected response type from Claude', {
               type: content.type,
@@ -75,17 +77,17 @@ export class ClaudeClient {
 
             reviewResponse = JSON.parse(jsonText.trim()) as ClaudeReviewResponse;
           } catch (parseError) {
-            const isTruncated = response.stop_reason === 'max_tokens';
+            const isTruncated = finalMessage.stop_reason === 'max_tokens';
 
             if (isTruncated) {
               logger.warn(`Claude response was truncated due to max_tokens limit`, {
                 maxTokens,
-                outputTokens: response.usage.output_tokens,
-                stopReason: response.stop_reason,
+                outputTokens: finalMessage.usage.output_tokens,
+                stopReason: finalMessage.stop_reason,
               });
             } else {
               logger.warn(`Claude response contains invalid JSON, attempting to salvage`, {
-                stopReason: response.stop_reason,
+                stopReason: finalMessage.stop_reason,
                 error: parseError instanceof Error ? parseError.message : String(parseError),
                 responseText: content.text.substring(0, 500),
               });
@@ -192,8 +194,8 @@ export class ClaudeClient {
 
           // Add token usage to response
           reviewResponse.tokensUsed = {
-            input: response.usage.input_tokens,
-            output: response.usage.output_tokens,
+            input: finalMessage.usage.input_tokens,
+            output: finalMessage.usage.output_tokens,
           };
 
           logger.info(`Successfully received AI review from Claude`, {

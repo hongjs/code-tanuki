@@ -17,12 +17,12 @@ const envSchema = z.object({
     .string()
     .transform(Number)
     .pipe(z.number().int().positive())
-    .default('8192'),
+    .default(8192),
   CLAUDE_TEMPERATURE: z
     .string()
     .transform(Number)
     .pipe(z.number().min(0).max(1))
-    .default('0.3'),
+    .default(0.3),
 
   GEMINI_API_KEY: z.string().optional(),
   GEMINI_MODEL_DEFAULT: z.string().default('gemini-2.0-flash'),
@@ -30,12 +30,12 @@ const envSchema = z.object({
     .string()
     .transform(Number)
     .pipe(z.number().int().positive())
-    .default('8192'),
+    .default(8192),
   GEMINI_TEMPERATURE: z
     .string()
     .transform(Number)
     .pipe(z.number().min(0).max(2))
-    .default('0.3'),
+    .default(0.3),
 
   STORAGE_TYPE: z.enum(['json']).default('json'),
   DATA_DIR: z.string().default('./data/reviews'),
@@ -47,23 +47,23 @@ const envSchema = z.object({
     .string()
     .transform(Number)
     .pipe(z.number().int().positive())
-    .default('3'),
+    .default(3),
   RETRY_BASE_DELAY_MS: z
     .string()
     .transform(Number)
     .pipe(z.number().int().positive())
-    .default('1000'),
+    .default(1000),
   RETRY_MAX_DELAY_MS: z
     .string()
     .transform(Number)
     .pipe(z.number().int().positive())
-    .default('10000'),
+    .default(10000),
 
   DUPLICATE_CHECK_MINUTES: z
     .string()
     .transform(Number)
     .pipe(z.number().int().positive())
-    .default('5'),
+    .default(5),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -571,7 +571,7 @@ export function ReviewForm() {
               />
 
               <Grid container spacing={2}>
-                <Grid item xs={12} md={8}>
+                <Grid size={{ xs: 12, md: 8 }}>
                   <ModelSelector
                     value={modelId}
                     onChange={setModelId}
@@ -579,7 +579,7 @@ export function ReviewForm() {
                     configLoading={configLoading}
                   />
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <Autocomplete
                     freeSolo
                     options={['4096', '8192', '16384', '24576', '32768']}
