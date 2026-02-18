@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { DataGrid, GridColDef, GridPaginationModel } from '@mui/x-data-grid';
+import { getModelById } from '@/lib/constants/models';
 import {
   Box,
   Chip,
@@ -223,10 +224,10 @@ export function HistoryTable() {
       headerName: 'Model',
       width: 150,
       renderCell: (params) => {
-        const modelName = params.value?.replace('claude-', '')?.replace('-20250514', '');
+        const model = params.value ? getModelById(params.value) : null;
         return (
           <Typography variant="caption" sx={{ fontWeight: 600, color: '#6366f1' }}>
-            {modelName?.toUpperCase() || params.value}
+            {model?.name || params.value}
           </Typography>
         );
       },

@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN yarn install --frozen-lockfile
+RUN npm install
 
 # Copy source code
 COPY . .
@@ -28,7 +28,7 @@ ENV PORT=3000
 COPY package*.json ./
 
 # Install production dependencies only
-RUN yarn install --frozen-lockfile
+RUN npm install --omit=dev
 
 # Copy built app from builder with proper ownership
 COPY --from=builder --chown=node:node /app/.next ./.next
@@ -50,4 +50,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
 
 # Start the application
-CMD ["yarn", "start"]
+CMD ["npm", "start"]

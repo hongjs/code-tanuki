@@ -242,14 +242,14 @@ code-tanuki/
 **Claude AI:**
 
 - `ANTHROPIC_API_KEY` - Your Claude API key (starts with `sk-ant-`)
-- `CLAUDE_MODEL_DEFAULT` - Default Claude model (default: `claude-haiku-4-5-20251001`)
+- `CLAUDE_MODEL_DEFAULT` - Default Claude model
 - `CLAUDE_MAX_TOKENS` - Max output tokens (default: `8192`)
 - `CLAUDE_TEMPERATURE` - AI temperature 0-1 (default: `0.3`)
 
 **Google Gemini (Optional):**
 
 - `GEMINI_API_KEY` - Your Gemini API key (optional)
-- `GEMINI_MODEL_DEFAULT` - Default Gemini model (default: `gemini-2.0-flash`)
+- `GEMINI_MODEL_DEFAULT` - Default Gemini model
 - `GEMINI_MAX_TOKENS` - Max output tokens (default: `2048`, recommended for free tier)
 - `GEMINI_TEMPERATURE` - AI temperature 0-2 (default: `0.3`)
 
@@ -277,18 +277,18 @@ code-tanuki/
 
 #### Claude Models (Anthropic)
 
-| Model             | ID                           |                          Best For |   Speed | Max Tokens |
-| ----------------- | ---------------------------- | --------------------------------: | ------: | ---------: |
-| Claude Opus 4.6   | `claude-opus-4-6`            | Complex reviews, highest accuracy |  Slower |       8192 |
-| Claude Sonnet 4.5 | `claude-sonnet-4-5-20250929` |              Balanced performance |  Medium |       8192 |
-| Claude Haiku 4.5  | `claude-haiku-4-5-20251001`  |         Quick reviews, simple PRs | Fastest |       8192 |
+| Model         |                          Best For |   Speed | Max Tokens |
+| ------------- | --------------------------------: | ------: | ---------: |
+| Claude Opus   | Complex reviews, highest accuracy |  Slower |       8192 |
+| Claude Sonnet |              Balanced performance |  Medium |       8192 |
+| Claude Haiku  |         Quick reviews, simple PRs | Fastest |       8192 |
 
 #### Gemini Models (Google)
 
-| Model                  | ID                       |                            Best For |  Speed | Max Tokens\* |
-| ---------------------- | ------------------------ | ----------------------------------: | -----: | -----------: |
-| Gemini 3 Pro Preview   | `gemini-3-pro-preview`   | Complex reasoning, thorough reviews | Medium |     2048\*\* |
-| Gemini 3 Flash Preview | `gemini-3-flash-preview` |             Fast reviews, efficient |   Fast |     2048\*\* |
+| Model                |                            Best For |  Speed | Max Tokens\* |
+| -------------------- | ----------------------------------: | -----: | -----------: |
+| Gemini Pro Preview   | Complex reasoning, thorough reviews | Medium |     2048\*\* |
+| Gemini Flash Preview |             Fast reviews, efficient |   Fast |     2048\*\* |
 
 **Note:** You can use either Claude or Gemini models. Configure the appropriate API key in your `.env` file.
 
@@ -331,7 +331,7 @@ For larger PRs (>500 lines), you may get partial reviews. Consider:
 | Feature                | Claude               | Gemini               |
 | ---------------------- | -------------------- | -------------------- |
 | **Cost**               | Paid (usage-based)   | Free tier available  |
-| **Best Models**        | Opus 4.5, Sonnet 4.5 | Gemini 3 Pro Preview |
+| **Best Models**        | Opus 4.5, Sonnet 4.6 | Gemini 3 Pro Preview |
 | **Speed**              | Very fast (Haiku)    | Very fast (Flash)    |
 | **Code Understanding** | Excellent            | Excellent            |
 | **Context Window**     | 200K tokens          | 2M tokens (Gemini 3) |

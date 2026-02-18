@@ -40,6 +40,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import { ReviewComment } from '@/types/review';
+import { getModelById } from '@/lib/constants/models';
 
 interface DiffLine {
   type: 'added' | 'removed' | 'context' | 'header';
@@ -62,6 +63,7 @@ interface ReviewPreviewDialogProps {
   diff: string;
   prTitle: string;
   prUrl: string;
+  modelId: string;
   modelName: string;
   tokensUsed?: { input: number; output: number };
   warning?: string;
@@ -134,6 +136,7 @@ export function ReviewPreviewDialog({
   diff: rawDiff,
   prTitle,
   prUrl,
+  modelId,
   modelName,
   tokensUsed,
   warning,
@@ -762,8 +765,9 @@ export function ReviewPreviewDialog({
               : 'No comments to post'}
           </Typography>
           {tokensUsed && (() => {
-            const costIn = (tokensUsed.input / 1_000_000) * 5;
-            const costOut = (tokensUsed.output / 1_000_000) * 25;
+            const model = getModelById(modelId);
+            const costIn = (tokensUsed.input / 1_000_000) * (model?.inTokenPrice ?? 0);
+            const costOut = (tokensUsed.output / 1_000_000) * (model?.outTokenPrice ?? 0);
             const totalCost = costIn + costOut;
             return (
               <>

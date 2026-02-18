@@ -21,22 +21,22 @@ interface ModelSelectorProps {
 
 const modelIcons: Record<string, typeof AutoAwesomeIcon> = {
   // Claude models
-  'claude-opus-4-6': AutoAwesomeIcon,
-  'claude-sonnet-4-5-20250929': BoltIcon,
-  'claude-haiku-4-5-20251001': SpeedIcon,
+  [CLAUDE_MODELS[0].id]: AutoAwesomeIcon,
+  [CLAUDE_MODELS[1].id]: BoltIcon,
+  [CLAUDE_MODELS[2].id]: SpeedIcon,
   // Gemini models
-  'gemini-3-pro-preview': PsychologyIcon,
-  'gemini-3-flash-preview': FlashOnIcon,
+  [GEMINI_MODELS[0].id]: PsychologyIcon,
+  [GEMINI_MODELS[1].id]: FlashOnIcon,
 };
 
 const modelGradients: Record<string, string> = {
   // Claude models - Purple/Pink gradient scheme
-  'claude-opus-4-6': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-  'claude-sonnet-4-5-20250929': 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-  'claude-haiku-4-5-20251001': 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+  [CLAUDE_MODELS[0].id]: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  [CLAUDE_MODELS[1].id]: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+  [CLAUDE_MODELS[2].id]: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
   // Gemini models - Blue/Green gradient scheme
-  'gemini-3-pro-preview': 'linear-gradient(135deg, #ea4335 0%, #fbbc05 100%)',
-  'gemini-3-flash-preview': 'linear-gradient(135deg, #4285f4 0%, #34a853 100%)',
+  [GEMINI_MODELS[0].id]: 'linear-gradient(135deg, #ea4335 0%, #fbbc05 100%)',
+  [GEMINI_MODELS[1].id]: 'linear-gradient(135deg, #4285f4 0%, #34a853 100%)',
 };
 
 const providerColors = {

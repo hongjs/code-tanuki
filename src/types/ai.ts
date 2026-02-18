@@ -29,6 +29,8 @@ export interface AIModel {
   description: string;
   maxTokens: number;
   provider: AIProvider;
+  outTokenPrice: number;
+  inTokenPrice: number;
 }
 
 export interface AppConfig {

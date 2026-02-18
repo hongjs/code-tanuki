@@ -24,7 +24,7 @@ import { ModelSelector } from './ModelSelector';
 import { ReviewProgress } from './ReviewProgress';
 import { ReviewPreviewDialog } from './ReviewPreviewDialog';
 import { ReviewStatus, ReviewComment } from '@/types/review';
-import { ALL_AI_MODELS } from '@/lib/constants/models';
+import { ALL_AI_MODELS, DEFAULT_CLAUDE_MODEL_ID } from '@/lib/constants/models';
 import { AppConfig } from '@/types/ai';
 import { extractJiraTicketFromTitle } from '@/lib/constants/regex';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
@@ -42,7 +42,7 @@ export function ReviewForm() {
   const [additionalPrompt, setAdditionalPrompt] = useState('');
   const [maxTokens, setMaxTokens] = useState<string>('');
   const [modelId, setModelId] = useState(
-    process.env.NEXT_PUBLIC_CLAUDE_MODEL_DEFAULT || 'claude-opus-4-6'
+    process.env.NEXT_PUBLIC_CLAUDE_MODEL_DEFAULT || DEFAULT_CLAUDE_MODEL_ID
   );
   const [status, setStatus] = useState<ReviewStatus>('idle');
   const [error, setError] = useState<string>();
@@ -363,6 +363,7 @@ export function ReviewForm() {
         diff={previewDiff}
         prTitle={prTitle || 'Pull Request'}
         prUrl={prUrl}
+        modelId={modelId}
         modelName={ALL_AI_MODELS.find((m) => m.id === modelId)?.name || modelId}
         tokensUsed={previewTokensUsed}
         warning={previewWarning}

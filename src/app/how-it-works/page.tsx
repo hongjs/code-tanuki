@@ -31,7 +31,7 @@ const steps = [
   },
   {
     label: 'AI Analysis',
-    description: 'Your selected AI model (Claude 4.5 or Gemini 3) analyzes the code changes against the PR description and Jira acceptance criteria to find bugs and logic errors.',
+    description: 'Your selected AI model (Claude 4.6 or Gemini 3) analyzes the code changes against the PR description and Jira acceptance criteria to find bugs and logic errors.',
     icon: <SmartToyIcon />,
     color: '#667eea',
   },

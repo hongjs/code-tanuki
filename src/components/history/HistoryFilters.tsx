@@ -4,6 +4,7 @@ import { Box, TextField, Select, MenuItem, FormControl, InputLabel, Button, Chip
 import FilterListIcon from '@mui/icons-material/FilterList';
 import ClearIcon from '@mui/icons-material/Clear';
 import SearchIcon from '@mui/icons-material/Search';
+import { ALL_AI_MODELS } from '@/lib/constants/models';
 
 interface HistoryFiltersProps {
   search: string;
@@ -114,11 +115,9 @@ export function HistoryFilters({
         <InputLabel>Model</InputLabel>
         <Select value={model} onChange={(e) => onModelChange(e.target.value)} label="Model">
           <MenuItem value="">All Models</MenuItem>
-          <MenuItem value="claude-opus-4-6">Claude Opus 4.6</MenuItem>
-          <MenuItem value="claude-sonnet-4-5-20250929">Claude Sonnet 4.5</MenuItem>
-          <MenuItem value="claude-haiku-4-5-20251001">Claude Haiku 4.5</MenuItem>
-          <MenuItem value="gemini-3-pro-preview">Gemini 3 Pro Preview</MenuItem>
-          <MenuItem value="gemini-3-flash-preview">Gemini 3 Flash Preview</MenuItem>
+          {ALL_AI_MODELS.map((m) => (
+            <MenuItem key={m.id} value={m.id}>{m.name}</MenuItem>
+          ))}
         </Select>
       </FormControl>
 

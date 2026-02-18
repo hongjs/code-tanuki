@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DEFAULT_CLAUDE_MODEL_ID, DEFAULT_GEMINI_MODEL_ID } from '@/lib/constants/models';
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -12,7 +13,7 @@ const envSchema = z.object({
   JIRA_API_TOKEN: z.string().min(1),
 
   ANTHROPIC_API_KEY: z.string().min(1, 'Anthropic API key is required'),
-  CLAUDE_MODEL_DEFAULT: z.string().default('claude-opus-4-20250514'),
+  CLAUDE_MODEL_DEFAULT: z.string().default(DEFAULT_CLAUDE_MODEL_ID),
   CLAUDE_MAX_TOKENS: z
     .string()
     .transform(Number)
@@ -25,7 +26,7 @@ const envSchema = z.object({
     .default(0.3),
 
   GEMINI_API_KEY: z.string().optional(),
-  GEMINI_MODEL_DEFAULT: z.string().default('gemini-2.0-flash'),
+  GEMINI_MODEL_DEFAULT: z.string().default(DEFAULT_GEMINI_MODEL_ID),
   GEMINI_MAX_TOKENS: z
     .string()
     .transform(Number)
