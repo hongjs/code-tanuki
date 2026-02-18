@@ -65,6 +65,25 @@ const envSchema = z.object({
     .transform(Number)
     .pipe(z.number().int().positive())
     .default(5),
+
+  BREAKDOWN_DATA_DIR: z.string().default('./data/breakdowns'),
+  BREAKDOWN_MAX_QA_ROUNDS: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().positive())
+    .default(3),
+  BREAKDOWN_MAX_CARDS: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().positive())
+    .default(15),
+  KNOWLEDGE_MD_PATH: z.string().default('./data/knowledge.md'),
+  JIRA_EPIC_LINK_FIELD: z.string().default('customfield_10014'),
+  BREAKDOWN_MAX_IMAGES: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().int().positive())
+    .default(5),
 });
 
 export type Env = z.infer<typeof envSchema>;

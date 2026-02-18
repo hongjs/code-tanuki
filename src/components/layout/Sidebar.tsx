@@ -21,6 +21,9 @@ import HistoryIcon from '@mui/icons-material/History';
 import CodeIcon from '@mui/icons-material/Code';
 import MenuIcon from '@mui/icons-material/Menu';
 import TipsAndUpdatesIcon from '@mui/icons-material/TipsAndUpdates';
+import AccountTreeIcon from '@mui/icons-material/AccountTree';
+import ListAltIcon from '@mui/icons-material/ListAlt';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 import { useState } from 'react';
 
 const drawerWidth = 280;
@@ -36,6 +39,24 @@ const mainMenuItems = [
     text: 'History',
     icon: <HistoryIcon />,
     path: '/history',
+    gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+  },
+  {
+    text: 'Story Breakdown',
+    icon: <AccountTreeIcon />,
+    path: '/breakdown',
+    gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+  },
+  {
+    text: 'Breakdown History',
+    icon: <ListAltIcon />,
+    path: '/breakdown-history',
+    gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+  },
+  {
+    text: 'Knowledge Base',
+    icon: <MenuBookIcon />,
+    path: '/knowledge',
     gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
   },
 ];

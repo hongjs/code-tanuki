@@ -1,8 +1,10 @@
 import { IStorageAdapter } from '@/types/storage';
 import { JsonStorageAdapter } from './json-storage';
+import { BreakdownStorageAdapter } from './breakdown-storage';
 import { logger } from '../logger/winston';
 
 let storageInstance: IStorageAdapter | null = null;
+let breakdownStorageInstance: BreakdownStorageAdapter | null = null;
 
 export function getStorage(): IStorageAdapter {
   if (!storageInstance) {
@@ -22,4 +24,14 @@ export function getStorage(): IStorageAdapter {
   }
 
   return storageInstance;
+}
+
+export function getBreakdownStorage(): BreakdownStorageAdapter {
+  if (!breakdownStorageInstance) {
+    const baseDir = process.env.BREAKDOWN_DATA_DIR || './data/breakdowns';
+    const knowledgeFile = process.env.KNOWLEDGE_MD_PATH || './data/knowledge.md';
+    breakdownStorageInstance = new BreakdownStorageAdapter(baseDir, knowledgeFile);
+    logger.info(`Initialized Breakdown storage adapter with base directory: ${baseDir}`);
+  }
+  return breakdownStorageInstance;
 }

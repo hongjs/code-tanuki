@@ -5,6 +5,8 @@ import { logger } from '../logger/winston';
 import { withRetry } from '../utils/retry';
 import { SYSTEM_PROMPT, buildReviewPrompt } from '../constants/prompts';
 
+const VISION_SYSTEM_INSTRUCTION = `You are a UI/UX analyst. Analyze the provided images and describe what you see in detail, focusing on: UI elements and layouts, user flows and interactions, data fields and forms, navigation patterns, and any other relevant design information that would help a developer understand what needs to be built.`;
+
 export class GeminiClient {
   private client: GoogleGenerativeAI;
 
@@ -210,6 +212,62 @@ export class GeminiClient {
           }
           return true;
         },
+      }
+    );
+  }
+
+  async describeImages(
+    attachments: { buffer: Buffer; mimeType: string; filename: string }[]
+  ): Promise<string> {
+    if (attachments.length === 0) return '';
+
+    return withRetry(
+      async () => {
+        try {
+          logger.info(`Analyzing ${attachments.length} image(s) with Gemini Vision`);
+
+          // Use gemini-2.0-flash for vision as it supports inline images reliably
+          const visionModel = this.client.getGenerativeModel({
+            model: 'gemini-2.0-flash',
+            systemInstruction: VISION_SYSTEM_INSTRUCTION,
+            generationConfig: {
+              maxOutputTokens: 4096,
+              temperature: 0.2,
+            },
+          });
+
+          const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
+            {
+              text: `Analyze these ${attachments.length} image(s) from a Jira ticket. Describe the UI/UX elements, user flows, data fields, and any requirements you can identify that would help developers implement this feature.`,
+            },
+          ];
+
+          for (const att of attachments) {
+            parts.push({
+              inlineData: {
+                mimeType: att.mimeType,
+                data: att.buffer.toString('base64'),
+              },
+            });
+            parts.push({ text: `(Image: ${att.filename})` });
+          }
+
+          const result = await visionModel.generateContent(parts);
+          const description = result.response.text();
+
+          logger.info(`Image analysis complete`, { descriptionLength: description.length });
+          return description;
+        } catch (error: unknown) {
+          if (error instanceof GeminiAPIError) throw error;
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          logger.error(`Failed to analyze images with Gemini`, { error: message });
+          throw new GeminiAPIError(`Failed to describe images: ${message}`, {});
+        }
+      },
+      {
+        maxAttempts: 2,
+        baseDelayMs: 1000,
+        maxDelayMs: 5000,
       }
     );
   }

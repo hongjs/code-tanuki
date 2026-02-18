@@ -1,9 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { ClaudeReviewRequest, ClaudeReviewResponse } from '@/types/claude';
+import { AIAnalysisResponse, AICardsResponse } from '@/types/breakdown';
 import { ClaudeAPIError } from '@/types/errors';
 import { logger } from '../logger/winston';
 import { withRetry } from '../utils/retry';
 import { SYSTEM_PROMPT, buildReviewPrompt } from '../constants/prompts';
+import { BREAKDOWN_SYSTEM_PROMPT } from '../constants/breakdown-prompts';
 
 export class ClaudeClient {
   private client: Anthropic;
@@ -250,5 +252,132 @@ export class ClaudeClient {
         },
       }
     );
+  }
+
+  private async callWithJSONParse<T>(prompt: string, modelId: string): Promise<T> {
+    const maxTokens = parseInt(process.env.CLAUDE_MAX_TOKENS || '8192');
+    const temperature = parseFloat(process.env.CLAUDE_TEMPERATURE || '0.3');
+
+    const stream = this.client.messages.stream({
+      model: modelId,
+      max_tokens: maxTokens,
+      temperature,
+      system: BREAKDOWN_SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const finalMessage = await stream.finalMessage();
+    const content = finalMessage.content[0];
+
+    if (content.type !== 'text') {
+      throw new ClaudeAPIError('Unexpected response type from Claude', { type: content.type });
+    }
+
+    let jsonText = content.text;
+    const jsonMatch = jsonText.match(/```json\s*([\s\S]*?)\s*```/) ||
+      jsonText.match(/```\s*([\s\S]*?)\s*```/);
+    if (jsonMatch) {
+      jsonText = jsonMatch[1];
+    }
+
+    try {
+      return JSON.parse(jsonText.trim()) as T;
+    } catch {
+      // Try to find JSON object in text
+      const start = jsonText.indexOf('{');
+      const end = jsonText.lastIndexOf('}');
+      if (start !== -1 && end !== -1 && end > start) {
+        return JSON.parse(jsonText.substring(start, end + 1)) as T;
+      }
+      throw new ClaudeAPIError('Failed to parse breakdown JSON response', {
+        responseText: content.text.substring(0, 500),
+      });
+    }
+  }
+
+  async analyzeUserStory(request: {
+    prompt: string;
+    modelId: string;
+  }): Promise<AIAnalysisResponse> {
+    return withRetry(
+      async () => {
+        try {
+          logger.info(`Analyzing user story with Claude`, { modelId: request.modelId });
+          const result = await this.callWithJSONParse<AIAnalysisResponse>(
+            request.prompt,
+            request.modelId
+          );
+          logger.info(`Analysis complete`, { needsClarification: result.needsClarification });
+          return result;
+        } catch (error: unknown) {
+          if (error instanceof ClaudeAPIError) throw error;
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          throw new ClaudeAPIError(`Failed to analyze user story: ${message}`, {
+            modelId: request.modelId,
+          });
+        }
+      },
+      {
+        maxAttempts: parseInt(process.env.RETRY_MAX_ATTEMPTS || '3'),
+        baseDelayMs: parseInt(process.env.RETRY_BASE_DELAY_MS || '1000'),
+        maxDelayMs: parseInt(process.env.RETRY_MAX_DELAY_MS || '10000'),
+        shouldRetry: (error) =>
+          !(error instanceof ClaudeAPIError && error.message.includes('parse')),
+      }
+    );
+  }
+
+  async generateTechnicalCards(request: {
+    prompt: string;
+    modelId: string;
+  }): Promise<AICardsResponse> {
+    return withRetry(
+      async () => {
+        try {
+          logger.info(`Generating technical cards with Claude`, { modelId: request.modelId });
+          const result = await this.callWithJSONParse<AICardsResponse>(
+            request.prompt,
+            request.modelId
+          );
+          logger.info(`Card generation complete`, { cardCount: result.cards?.length });
+          return result;
+        } catch (error: unknown) {
+          if (error instanceof ClaudeAPIError) throw error;
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          throw new ClaudeAPIError(`Failed to generate technical cards: ${message}`, {
+            modelId: request.modelId,
+          });
+        }
+      },
+      {
+        maxAttempts: parseInt(process.env.RETRY_MAX_ATTEMPTS || '3'),
+        baseDelayMs: parseInt(process.env.RETRY_BASE_DELAY_MS || '1000'),
+        maxDelayMs: parseInt(process.env.RETRY_MAX_DELAY_MS || '10000'),
+        shouldRetry: (error) =>
+          !(error instanceof ClaudeAPIError && error.message.includes('parse')),
+      }
+    );
+  }
+
+  async generateText(request: { prompt: string; modelId: string }): Promise<string> {
+    const maxTokens = parseInt(process.env.CLAUDE_MAX_TOKENS || '8192');
+    const temperature = parseFloat(process.env.CLAUDE_TEMPERATURE || '0.3');
+
+    const stream = this.client.messages.stream({
+      model: request.modelId,
+      max_tokens: maxTokens,
+      temperature,
+      system: BREAKDOWN_SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: request.prompt }],
+    });
+
+    const finalMessage = await stream.finalMessage();
+    const content = finalMessage.content[0];
+
+    if (content.type !== 'text') {
+      throw new ClaudeAPIError('Unexpected response type from Claude', { type: content.type });
+    }
+
+    return content.text;
   }
 }
