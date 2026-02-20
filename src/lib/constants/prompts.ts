@@ -101,16 +101,20 @@ Severity levels:
 - warning: Should fix (potential issues, bad practices)
 - suggestion: Nice to have (improvements, optimizations)
 
-SELF-LEARNING (OPTIONAL):
-If you discover new patterns, conventions, or project-specific context from this PR
-that would help future reviews, include a "knowledgeSection" field in your JSON response
-with the new knowledge in Markdown format. Only include it if there's genuinely new,
-reusable information. Format as a Markdown section (e.g., "## New Pattern\\n\\n...").
+SELF-LEARNING (REQUIRED):
+Always include a "knowledgeSection" field in your JSON response.
+After reviewing this PR, write a brief Markdown section capturing:
+1. Tech stack or framework details observed (language, libraries, patterns)
+2. Project-specific conventions or architecture decisions
+3. Any recurring issues or patterns worth flagging in future reviews
 
-Updated JSON format:
+Keep it concise (3-8 bullet points). Even if nothing is new, note the PR type and stack for context.
+Format: start with a heading, e.g. "## PR: [brief topic]\\n\\n..."
+
+REQUIRED JSON format:
 {
   "comments": [...],
-  "knowledgeSection": "## Optional new section\\n\\n..."
+  "knowledgeSection": "## PR: [topic]\\n\\n- Observation 1\\n- Observation 2"
 }`;
 
 function cleanPrBody(body: string): string {
