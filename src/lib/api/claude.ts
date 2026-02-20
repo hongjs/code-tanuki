@@ -3,7 +3,7 @@ import { ClaudeReviewRequest, ClaudeReviewResponse } from '@/types/claude';
 import { ClaudeAPIError } from '@/types/errors';
 import { logger } from '../logger/winston';
 import { withRetry } from '../utils/retry';
-import { SYSTEM_PROMPT, buildReviewPrompt, buildKnowledgeSection } from '../constants/prompts';
+import { SYSTEM_PROMPT, buildReviewPrompt, buildKnowledgeSection, buildImageSection } from '../constants/prompts';
 
 export class ClaudeClient {
   private client: Anthropic;
@@ -45,13 +45,21 @@ export class ClaudeClient {
           );
 
           // Build user content: cache knowledge block separately from PR-specific content
-          const userContent = request.knowledge
+          // imageDescriptions are dynamic (different per PR) — NOT cached
+          const userContent = (request.knowledge || request.imageDescriptions?.length)
             ? [
-                {
-                  type: 'text' as const,
-                  text: buildKnowledgeSection(request.knowledge),
-                  cache_control: { type: 'ephemeral' as const },
-                },
+                ...(request.knowledge
+                  ? [
+                      {
+                        type: 'text' as const,
+                        text: buildKnowledgeSection(request.knowledge),
+                        cache_control: { type: 'ephemeral' as const },
+                      },
+                    ]
+                  : []),
+                ...(request.imageDescriptions?.length
+                  ? [{ type: 'text' as const, text: buildImageSection(request.imageDescriptions) }]
+                  : []),
                 { type: 'text' as const, text: userPrompt },
               ]
             : userPrompt;

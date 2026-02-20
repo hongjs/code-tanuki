@@ -13,6 +13,7 @@ export interface AIReviewRequest {
   modelId: string;
   provider?: AIProvider;
   knowledge?: string;
+  imageDescriptions?: string[];
 }
 
 export interface AIReviewResponse {

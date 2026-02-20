@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { JiraTicket } from '@/types/jira';
+import { JiraAttachment, JiraTicket } from '@/types/jira';
 import { JiraAPIError } from '@/types/errors';
 import { logger } from '../logger/winston';
 import { withRetry } from '../utils/retry';
@@ -48,6 +48,15 @@ export class JiraClient {
             }
           }
 
+          const attachments: JiraAttachment[] = (fields.attachment ?? [])
+            .filter((a: any) => a.mimeType?.startsWith('image/'))
+            .map((a: any) => ({
+              id: a.id,
+              filename: a.filename,
+              mimeType: a.mimeType,
+              content: a.content,
+            }));
+
           const ticket: JiraTicket = {
             key: data.key,
             summary: fields.summary,
@@ -62,6 +71,7 @@ export class JiraClient {
                   emailAddress: fields.assignee.emailAddress,
                 }
               : undefined,
+            attachments: attachments.length > 0 ? attachments : undefined,
           };
 
           logger.info(`Successfully fetched Jira ticket`, { ticketId, type: ticket.type });

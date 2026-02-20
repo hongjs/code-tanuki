@@ -1,19 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v7 as uuidv7 } from 'uuid';
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import axios from 'axios';
 import { GitHubClient } from '@/lib/api/github';
 import { JiraClient } from '@/lib/api/jira';
 import { ClaudeClient } from '@/lib/api/claude';
 import { GeminiClient } from '@/lib/api/gemini';
+import { GeminiVisionClient } from '@/lib/api/gemini-vision';
 import { getStorage } from '@/lib/storage';
 import { parseGitHubPRUrl } from '@/lib/utils/parsers';
 import { validateReviewRequest } from '@/lib/utils/validation';
 import { extractJiraTicketFromTitle } from '@/lib/constants/regex';
+import { extractImageUrls } from '@/lib/utils/image-extractor';
 import { logger } from '@/lib/logger/winston';
 import { Review, ReviewMetadata, StepResult } from '@/types/review';
 import { getProviderFromModelId } from '@/lib/constants/models';
 import { AIReviewResponse } from '@/types/ai';
 import { SYSTEM_PROMPT, buildReviewPrompt } from '@/lib/constants/prompts';
 import { readKnowledge, updateKnowledge } from '@/lib/utils/knowledge';
+
+function guessMimeType(url: string): string {
+  const lower = url.toLowerCase().split('?')[0];
+  if (lower.endsWith('.png')) return 'image/png';
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+  if (lower.endsWith('.gif')) return 'image/gif';
+  if (lower.endsWith('.webp')) return 'image/webp';
+  if (lower.endsWith('.svg')) return 'image/svg+xml';
+  return 'image/png'; // default
+}
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -97,6 +112,105 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Step: Image Vision Analysis
+      const imageVisionStart = Date.now();
+      let imageDescriptions: string[] = [];
+      const imageItems: Array<{
+        url: string;
+        headers: Record<string, string>;
+        source: string;
+        filename: string;
+        mimeType: string;
+      }> = [];
+
+      // Collect image URLs from PR body
+      const prImageUrls = extractImageUrls(pr.body);
+      for (const url of prImageUrls) {
+        imageItems.push({
+          url,
+          headers: { Authorization: `Bearer ${githubToken}` },
+          source: 'GitHub PR',
+          filename: url.split('/').pop()?.split('?')[0] ?? 'image',
+          mimeType: guessMimeType(url),
+        });
+      }
+
+      // Collect image attachments from Jira ticket
+      if (jiraTicket?.attachments) {
+        const jiraEmail = process.env.JIRA_EMAIL!;
+        const jiraToken = process.env.JIRA_API_TOKEN!;
+        const basicAuth = Buffer.from(`${jiraEmail}:${jiraToken}`).toString('base64');
+        for (const att of jiraTicket.attachments) {
+          imageItems.push({
+            url: att.content,
+            headers: { Authorization: `Basic ${basicAuth}` },
+            source: 'Jira attachment',
+            filename: att.filename,
+            mimeType: att.mimeType,
+          });
+        }
+      }
+
+      const maxImages = parseInt(process.env.MAX_IMAGES_PER_REVIEW ?? '10');
+      const limitedItems = imageItems.slice(0, maxImages);
+
+      if (limitedItems.length > 0) {
+        const geminiApiKey = process.env.GEMINI_API_KEY;
+        if (!geminiApiKey) {
+          logger.warn('Images found but GEMINI_API_KEY not set, skipping image analysis', {
+            count: limitedItems.length,
+          });
+          steps.imageVision = {
+            success: false,
+            durationMs: Date.now() - imageVisionStart,
+            error: 'GEMINI_API_KEY not set',
+            imagesFound: limitedItems.length,
+            imagesAnalyzed: 0,
+          };
+        } else {
+          const visionClient = new GeminiVisionClient(geminiApiKey);
+          let analyzed = 0;
+          const baseDir = process.env.DATA_DIR || './data/reviews';
+          const dataDir = path.join(baseDir, 'data');
+          const imagesDir = path.join(dataDir, reviewId, 'images');
+          await fs.mkdir(imagesDir, { recursive: true });
+
+          for (let i = 0; i < limitedItems.length; i++) {
+            const item = limitedItems[i];
+            try {
+              const resp = await axios.get(item.url, {
+                headers: item.headers,
+                responseType: 'arraybuffer',
+                timeout: 15000,
+              });
+              const buffer = Buffer.from(resp.data as ArrayBuffer);
+              await fs.writeFile(path.join(imagesDir, `${i + 1}-${item.filename}`), buffer);
+              const desc = await visionClient.describeImage(buffer, item.mimeType);
+              imageDescriptions.push(`[${item.source}] ${desc}`);
+              analyzed++;
+            } catch (err) {
+              logger.warn('Failed to process image', {
+                url: item.url,
+                error: err instanceof Error ? err.message : String(err),
+              });
+            }
+          }
+
+          await storage.saveArtifact(reviewId, 'image-descriptions.json', imageDescriptions);
+          steps.imageVision = {
+            success: true,
+            durationMs: Date.now() - imageVisionStart,
+            imagesFound: limitedItems.length,
+            imagesAnalyzed: analyzed,
+          };
+          logger.info('Image vision analysis complete', {
+            reviewId,
+            imagesFound: limitedItems.length,
+            imagesAnalyzed: analyzed,
+          });
+        }
+      }
+
       // Read knowledge base for self-learning context
       const knowledge = await readKnowledge();
       if (knowledge) {
@@ -110,7 +224,8 @@ export async function POST(request: NextRequest) {
         pr.body,
         jiraTicket,
         validatedRequest.additionalPrompt,
-        knowledge || undefined
+        knowledge || undefined,
+        imageDescriptions.length > 0 ? imageDescriptions : undefined
       );
 
       // Save the actual prompt text sent to AI
@@ -156,6 +271,7 @@ export async function POST(request: NextRequest) {
             provider: 'gemini',
             maxTokens: validatedRequest.maxTokens,
             knowledge: knowledge || undefined,
+            imageDescriptions: imageDescriptions.length > 0 ? imageDescriptions : undefined,
           });
         } else {
           const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
@@ -173,6 +289,7 @@ export async function POST(request: NextRequest) {
             modelId: validatedRequest.modelId,
             maxTokens: validatedRequest.maxTokens,
             knowledge: knowledge || undefined,
+            imageDescriptions: imageDescriptions.length > 0 ? imageDescriptions : undefined,
           });
         }
 
