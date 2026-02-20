@@ -37,7 +37,8 @@ export class ClaudeClient {
             request.prTitle,
             request.prBody,
             request.jiraTicket,
-            request.additionalPrompt
+            request.additionalPrompt,
+            request.knowledge
           );
 
           const maxTokens = request.maxTokens || parseInt(process.env.CLAUDE_MAX_TOKENS || '8192');

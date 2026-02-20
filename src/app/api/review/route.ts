@@ -13,6 +13,7 @@ import { Review, ReviewMetadata, StepResult } from '@/types/review';
 import { getProviderFromModelId } from '@/lib/constants/models';
 import { AIReviewResponse } from '@/types/ai';
 import { SYSTEM_PROMPT, buildReviewPrompt } from '@/lib/constants/prompts';
+import { readKnowledge, updateKnowledge } from '@/lib/utils/knowledge';
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -96,13 +97,20 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Read knowledge base for self-learning context
+      const knowledge = await readKnowledge();
+      if (knowledge) {
+        logger.info('Self-learning: loaded knowledge base', { size: knowledge.length });
+      }
+
       // Build and log the prompt that will be sent to AI
       const userPrompt = buildReviewPrompt(
         pr.diff,
         pr.title,
         pr.body,
         jiraTicket,
-        validatedRequest.additionalPrompt
+        validatedRequest.additionalPrompt,
+        knowledge || undefined
       );
 
       // Save the actual prompt text sent to AI
@@ -147,6 +155,7 @@ export async function POST(request: NextRequest) {
             modelId: validatedRequest.modelId,
             provider: 'gemini',
             maxTokens: validatedRequest.maxTokens,
+            knowledge: knowledge || undefined,
           });
         } else {
           const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
@@ -163,10 +172,25 @@ export async function POST(request: NextRequest) {
             additionalPrompt: validatedRequest.additionalPrompt,
             modelId: validatedRequest.modelId,
             maxTokens: validatedRequest.maxTokens,
+            knowledge: knowledge || undefined,
           });
         }
 
         await storage.saveArtifact(reviewId, 'res-ai.json', reviewResponse);
+
+        // Self-learning: update knowledge base if AI returned new knowledge
+        if (reviewResponse.knowledgeSection) {
+          try {
+            await updateKnowledge(reviewResponse.knowledgeSection);
+            logger.info('Self-learning: updated knowledge.md', {
+              section: reviewResponse.knowledgeSection.substring(0, 100),
+            });
+          } catch (knowledgeError) {
+            logger.warn('Self-learning: failed to update knowledge.md', {
+              error: knowledgeError instanceof Error ? knowledgeError.message : String(knowledgeError),
+            });
+          }
+        }
 
         steps.aiReview = {
           success: true,
