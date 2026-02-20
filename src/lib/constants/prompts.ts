@@ -99,7 +99,19 @@ RULES:
 Severity levels:
 - critical: Must fix before merge (bugs, security, data loss)
 - warning: Should fix (potential issues, bad practices)
-- suggestion: Nice to have (improvements, optimizations)`;
+- suggestion: Nice to have (improvements, optimizations)
+
+SELF-LEARNING (OPTIONAL):
+If you discover new patterns, conventions, or project-specific context from this PR
+that would help future reviews, include a "knowledgeSection" field in your JSON response
+with the new knowledge in Markdown format. Only include it if there's genuinely new,
+reusable information. Format as a Markdown section (e.g., "## New Pattern\\n\\n...").
+
+Updated JSON format:
+{
+  "comments": [...],
+  "knowledgeSection": "## Optional new section\\n\\n..."
+}`;
 
 function cleanPrBody(body: string): string {
   if (!body) return '';
@@ -131,7 +143,8 @@ export function buildReviewPrompt(
   prTitle: string,
   prBody: string,
   jiraTicket?: JiraTicket,
-  additionalPrompt?: string
+  additionalPrompt?: string,
+  knowledge?: string
 ): string {
   // Annotate the diff with line numbers for accurate AI comments
   const annotatedDiff = annotateDiffWithLineNumbers(diff);
@@ -140,7 +153,16 @@ export function buildReviewPrompt(
 
   let prompt = `# Pull Request Review
 
-## PR Details
+`;
+
+  if (knowledge) {
+    prompt += `## 📚 Knowledge Base Context
+${knowledge}
+
+`;
+  }
+
+  prompt += `## PR Details
 **Title:** ${prTitle}
 **Description:**
 ${cleanedBody || 'No description provided'}

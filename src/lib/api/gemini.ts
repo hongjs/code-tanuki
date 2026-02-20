@@ -31,7 +31,8 @@ export class GeminiClient {
             request.prTitle,
             request.prBody,
             request.jiraTicket,
-            request.additionalPrompt
+            request.additionalPrompt,
+            request.knowledge
           );
 
           logger.info(`User prompt:`, userPrompt.substring(0, 100));

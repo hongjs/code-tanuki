@@ -9,6 +9,7 @@ export interface ClaudeReviewRequest {
   additionalPrompt?: string;
   maxTokens?: number;
   modelId: string;
+  knowledge?: string;
 }
 
 export interface ClaudeReviewResponse {
@@ -18,6 +19,7 @@ export interface ClaudeReviewResponse {
     output: number;
   };
   warning?: string;
+  knowledgeSection?: string;
 }
 
 export interface ClaudeModel {

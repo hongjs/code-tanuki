@@ -12,6 +12,7 @@ export interface AIReviewRequest {
   maxTokens?: number;
   modelId: string;
   provider?: AIProvider;
+  knowledge?: string;
 }
 
 export interface AIReviewResponse {
@@ -21,6 +22,7 @@ export interface AIReviewResponse {
     output: number;
   };
   warning?: string;
+  knowledgeSection?: string;
 }
 
 export interface AIModel {
