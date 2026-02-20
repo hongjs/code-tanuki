@@ -178,6 +178,15 @@ export async function POST(request: NextRequest) {
 
         await storage.saveArtifact(reviewId, 'res-ai.json', reviewResponse);
 
+        // Log prompt caching stats if available
+        if (reviewResponse.cacheTokens) {
+          logger.info('Prompt caching stats', {
+            reviewId,
+            cacheWrite: reviewResponse.cacheTokens.write,
+            cacheRead: reviewResponse.cacheTokens.read,
+          });
+        }
+
         // Self-learning: update knowledge base if AI returned new knowledge
         if (reviewResponse.knowledgeSection) {
           try {
@@ -239,6 +248,7 @@ export async function POST(request: NextRequest) {
             modelId: validatedRequest.modelId,
             diff: pr.diff, // Send diff to frontend
             tokensUsed: reviewResponse.tokensUsed,
+            cacheTokens: reviewResponse.cacheTokens,
             warning: reviewResponse.warning,
           });
         }

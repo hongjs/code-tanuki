@@ -21,6 +21,10 @@ export interface AIReviewResponse {
     input: number;
     output: number;
   };
+  cacheTokens?: {
+    write: number;
+    read: number;
+  };
   warning?: string;
   knowledgeSection?: string;
 }
