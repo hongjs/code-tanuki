@@ -54,25 +54,34 @@ function formatTickets(tickets: FullJiraTicket[]): string {
     .join('\n\n---\n\n');
 }
 
-export function buildInitialAnalysisPrompt(
+// Returns the stable context that can be cached across all calls in the same session.
+// Include knowledge base, Jira tickets, and image descriptions — these never change within a session.
+export function buildStableContext(
   tickets: FullJiraTicket[],
   knowledge: string,
-  imageDescription?: string | null,
+  imageDescription?: string | null
+): string {
+  let context = `## Project Knowledge Base\n${knowledge || '(No knowledge base configured)'}`;
+  context += `\n\n## Jira Ticket${tickets.length > 1 ? 's' : ''}\n${formatTickets(tickets)}`;
+  if (imageDescription) {
+    context += `\n\n## UI/Design Analysis (from attachments)\n${imageDescription}`;
+  }
+  return context;
+}
+
+// Returns only the task-specific part (no knowledge/tickets) — used as the non-cached block.
+export function buildInitialAnalysisDynamic(
+  tickets: FullJiraTicket[],
   additionalPrompt?: string
 ): string {
   const ticketLabel = tickets.length === 1 ? 'this Jira user story' : `these ${tickets.length} Jira user stories`;
-  return `Analyze ${ticketLabel} and determine if you have enough information to generate technical implementation cards.
+  let prompt = `Analyze ${ticketLabel} and determine if you have enough information to generate technical implementation cards.\n`;
 
-## Project Knowledge Base
-${knowledge || '(No knowledge base configured)'}
+  if (additionalPrompt) {
+    prompt += `\n## Additional Context from Requester\n${additionalPrompt}\n`;
+  }
 
-## Jira Ticket${tickets.length > 1 ? 's' : ''}
-${formatTickets(tickets)}
-
-${imageDescription ? `## UI/Design Analysis (from attachments)\n${imageDescription}` : ''}
-
-${additionalPrompt ? `## Additional Context from Requester\n${additionalPrompt}` : ''}
-
+  prompt += `
 ## Your Task
 Analyze the above ${ticketLabel}. If there are critical gaps or ambiguities that would prevent accurate technical breakdown, return clarifying questions. Otherwise, indicate you are ready to generate cards.
 
@@ -101,29 +110,43 @@ Respond with this exact JSON structure:
       "category": "api" | "database" | "external-service" | "ui" | "business-logic" | "other"
     }
   ],
-  "analysisNotes": "Brief notes about what you understand so far"
+  "analysisNotes": "Brief notes about what you understand so far",
+  "knowledgeSuggestion": {
+    "section": "Section name in knowledge.md",
+    "content": "Specific content to add or update",
+    "reason": "Why this should be captured in the knowledge base"
+  }
 }
 
 If needsClarification is false, return empty questions array.
-Limit questions to maximum 5 most critical ones. Each question must cover exactly one topic.`;
+Limit questions to maximum 5 most critical ones. Each question must cover exactly one topic.
+knowledgeSuggestion is optional — only include if analyzing this ticket revealed something concrete about the project (tech patterns, architecture, domain rules, integration details, naming conventions) that is NOT already captured in the knowledge base.`;
+
+  return prompt;
 }
 
-export function buildReAnalysisPrompt(
+export function buildInitialAnalysisPrompt(
   tickets: FullJiraTicket[],
   knowledge: string,
+  imageDescription?: string | null,
+  additionalPrompt?: string
+): string {
+  return `${buildStableContext(tickets, knowledge, imageDescription)}\n\n${buildInitialAnalysisDynamic(tickets, additionalPrompt)}`;
+}
+
+export function buildReAnalysisDynamic(
+  tickets: FullJiraTicket[],
   qaHistory: QAEntry[],
   additionalPrompt?: string
 ): string {
-  return `Re-analyze ${tickets.length === 1 ? 'this Jira user story' : `these ${tickets.length} Jira user stories`} with the answers provided to your previous questions.
+  const ticketLabel = tickets.length === 1 ? 'this Jira user story' : `these ${tickets.length} Jira user stories`;
+  let prompt = `Re-analyze ${ticketLabel} with the answers provided to your previous questions.\n`;
 
-## Project Knowledge Base
-${knowledge || '(No knowledge base configured)'}
+  if (additionalPrompt) {
+    prompt += `\n## Additional Context from Requester\n${additionalPrompt}\n`;
+  }
 
-## Jira Ticket${tickets.length > 1 ? 's' : ''}
-${formatTickets(tickets)}
-
-${additionalPrompt ? `## Additional Context from Requester\n${additionalPrompt}` : ''}
-
+  prompt += `
 ## Q&A History
 ${formatQAHistory(qaHistory)}
 
@@ -149,20 +172,35 @@ Respond with this exact JSON structure:
       "category": "api" | "database" | "external-service" | "ui" | "business-logic" | "other"
     }
   ],
-  "analysisNotes": "Updated understanding based on answers"
+  "analysisNotes": "Updated understanding based on answers",
+  "knowledgeSuggestion": {
+    "section": "Section name in knowledge.md",
+    "content": "Specific content to add or update",
+    "reason": "Why this should be captured in the knowledge base"
+  }
 }
 
 If needsClarification is false, return empty questions array.
-Limit questions to maximum 3 most critical remaining ones. Each question must cover exactly one topic.`;
+Limit questions to maximum 3 most critical remaining ones. Each question must cover exactly one topic.
+knowledgeSuggestion is optional — only include if the Q&A answers revealed something concrete about the project that is NOT already captured in the knowledge base.`;
+
+  return prompt;
 }
 
-export function buildCardGenerationPrompt(
+export function buildReAnalysisPrompt(
   tickets: FullJiraTicket[],
   knowledge: string,
   qaHistory: QAEntry[],
+  additionalPrompt?: string
+): string {
+  return `${buildStableContext(tickets, knowledge)}\n\n${buildReAnalysisDynamic(tickets, qaHistory, additionalPrompt)}`;
+}
+
+export function buildCardGenerationDynamic(
+  tickets: FullJiraTicket[],
+  qaHistory: QAEntry[],
   detailLevel: 'detailed' | 'balanced' | 'minimal',
   enableCoaching: boolean,
-  imageDescription?: string | null,
   additionalPrompt?: string
 ): string {
   const detailInstructions = {
@@ -175,18 +213,13 @@ export function buildCardGenerationPrompt(
   const primaryTicketKey = tickets[0]?.key || 'UNKNOWN';
   const ticketKeys = tickets.map((t) => t.key).join(', ');
 
-  return `Generate developer-ready technical implementation cards for ${tickets.length === 1 ? 'this user story' : `these ${tickets.length} user stories`}.
+  let prompt = `Generate developer-ready technical implementation cards for ${tickets.length === 1 ? 'this user story' : `these ${tickets.length} user stories`}.\n`;
 
-## Project Knowledge Base
-${knowledge || '(No knowledge base configured)'}
+  if (additionalPrompt) {
+    prompt += `\n## Additional Context from Requester\n${additionalPrompt}\n`;
+  }
 
-## Jira Ticket${tickets.length > 1 ? 's' : ''}
-${formatTickets(tickets)}
-
-${imageDescription ? `## UI/Design Analysis (from attachments)\n${imageDescription}` : ''}
-
-${additionalPrompt ? `## Additional Context from Requester\n${additionalPrompt}` : ''}
-
+  prompt += `
 ## Q&A Clarifications
 ${formatQAHistory(qaHistory)}
 
@@ -249,6 +282,20 @@ Respond with this exact JSON structure:
 }
 
 knowledgeSuggestion is optional - only include if you discovered something worth adding to the project knowledge base.`;
+
+  return prompt;
+}
+
+export function buildCardGenerationPrompt(
+  tickets: FullJiraTicket[],
+  knowledge: string,
+  qaHistory: QAEntry[],
+  detailLevel: 'detailed' | 'balanced' | 'minimal',
+  enableCoaching: boolean,
+  imageDescription?: string | null,
+  additionalPrompt?: string
+): string {
+  return `${buildStableContext(tickets, knowledge, imageDescription)}\n\n${buildCardGenerationDynamic(tickets, qaHistory, detailLevel, enableCoaching, additionalPrompt)}`;
 }
 
 export function buildKnowledgeInitPrompt(context: string): string {

@@ -6,6 +6,7 @@ import { logger } from '../logger/winston';
 import { withRetry } from '../utils/retry';
 import { SYSTEM_PROMPT, buildReviewPrompt } from '../constants/prompts';
 import { BREAKDOWN_SYSTEM_PROMPT } from '../constants/breakdown-prompts';
+import { recordTokenUsage } from '../logger/token-logger';
 
 export class ClaudeClient {
   private client: Anthropic;
@@ -21,6 +22,9 @@ export class ClaudeClient {
 
     this.client = new Anthropic({
       apiKey,
+      defaultHeaders: {
+        'anthropic-beta': 'prompt-caching-2024-07-31',
+      },
     });
   }
 
@@ -49,7 +53,7 @@ export class ClaudeClient {
             model: request.modelId,
             max_tokens: maxTokens,
             temperature,
-            system: SYSTEM_PROMPT,
+            system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
             messages: [
               {
                 role: 'user',
@@ -200,9 +204,25 @@ export class ClaudeClient {
             output: finalMessage.usage.output_tokens,
           };
 
+          const cacheUsage = finalMessage.usage as typeof finalMessage.usage & {
+            cache_creation_input_tokens?: number;
+            cache_read_input_tokens?: number;
+          };
           logger.info(`Successfully received AI review from Claude`, {
             commentsCount: reviewResponse.comments.length,
             tokensUsed: reviewResponse.tokensUsed,
+            cacheCreationTokens: cacheUsage.cache_creation_input_tokens ?? 0,
+            cacheReadTokens: cacheUsage.cache_read_input_tokens ?? 0,
+          });
+
+          await recordTokenUsage({
+            timestamp: new Date().toISOString(),
+            method: 'reviewPR',
+            modelId: request.modelId,
+            inputTokens: finalMessage.usage.input_tokens,
+            outputTokens: finalMessage.usage.output_tokens,
+            cacheCreationTokens: cacheUsage.cache_creation_input_tokens ?? 0,
+            cacheReadTokens: cacheUsage.cache_read_input_tokens ?? 0,
           });
 
           return reviewResponse;
@@ -254,19 +274,60 @@ export class ClaudeClient {
     );
   }
 
-  private async callWithJSONParse<T>(prompt: string, modelId: string): Promise<T> {
+  private async callWithJSONParse<T>(
+    prompt: string,
+    modelId: string,
+    stableContext?: string,
+    method?: string
+  ): Promise<{ result: T; tokensUsed: { input: number; output: number } }> {
     const maxTokens = parseInt(process.env.CLAUDE_MAX_TOKENS || '8192');
     const temperature = parseFloat(process.env.CLAUDE_TEMPERATURE || '0.3');
+
+    const userContent: Anthropic.Messages.ContentBlockParam[] = stableContext
+      ? [
+          { type: 'text', text: stableContext, cache_control: { type: 'ephemeral' } },
+          { type: 'text', text: prompt },
+        ]
+      : [{ type: 'text', text: prompt }];
 
     const stream = this.client.messages.stream({
       model: modelId,
       max_tokens: maxTokens,
       temperature,
-      system: BREAKDOWN_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: prompt }],
+      system: [{ type: 'text', text: BREAKDOWN_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
+      messages: [{ role: 'user', content: userContent }],
     });
 
     const finalMessage = await stream.finalMessage();
+    const cacheUsage = finalMessage.usage as typeof finalMessage.usage & {
+      cache_creation_input_tokens?: number;
+      cache_read_input_tokens?: number;
+    };
+
+    const tokensUsed = {
+      input: finalMessage.usage.input_tokens,
+      output: finalMessage.usage.output_tokens,
+    };
+
+    logger.info(`Claude token usage`, {
+      method: method ?? 'callWithJSONParse',
+      modelId,
+      inputTokens: tokensUsed.input,
+      outputTokens: tokensUsed.output,
+      cacheCreationTokens: cacheUsage.cache_creation_input_tokens ?? 0,
+      cacheReadTokens: cacheUsage.cache_read_input_tokens ?? 0,
+    });
+
+    await recordTokenUsage({
+      timestamp: new Date().toISOString(),
+      method: method ?? 'callWithJSONParse',
+      modelId,
+      inputTokens: tokensUsed.input,
+      outputTokens: tokensUsed.output,
+      cacheCreationTokens: cacheUsage.cache_creation_input_tokens ?? 0,
+      cacheReadTokens: cacheUsage.cache_read_input_tokens ?? 0,
+    });
+
     const content = finalMessage.content[0];
 
     if (content.type !== 'text') {
@@ -281,13 +342,13 @@ export class ClaudeClient {
     }
 
     try {
-      return JSON.parse(jsonText.trim()) as T;
+      return { result: JSON.parse(jsonText.trim()) as T, tokensUsed };
     } catch {
       // Try to find JSON object in text
       const start = jsonText.indexOf('{');
       const end = jsonText.lastIndexOf('}');
       if (start !== -1 && end !== -1 && end > start) {
-        return JSON.parse(jsonText.substring(start, end + 1)) as T;
+        return { result: JSON.parse(jsonText.substring(start, end + 1)) as T, tokensUsed };
       }
       throw new ClaudeAPIError('Failed to parse breakdown JSON response', {
         responseText: content.text.substring(0, 500),
@@ -298,17 +359,20 @@ export class ClaudeClient {
   async analyzeUserStory(request: {
     prompt: string;
     modelId: string;
+    stableContext?: string;
   }): Promise<AIAnalysisResponse> {
     return withRetry(
       async () => {
         try {
           logger.info(`Analyzing user story with Claude`, { modelId: request.modelId });
-          const result = await this.callWithJSONParse<AIAnalysisResponse>(
+          const { result, tokensUsed } = await this.callWithJSONParse<AIAnalysisResponse>(
             request.prompt,
-            request.modelId
+            request.modelId,
+            request.stableContext,
+            'analyzeUserStory'
           );
           logger.info(`Analysis complete`, { needsClarification: result.needsClarification });
-          return result;
+          return { ...result, tokensUsed };
         } catch (error: unknown) {
           if (error instanceof ClaudeAPIError) throw error;
           const message = error instanceof Error ? error.message : 'Unknown error';
@@ -330,17 +394,20 @@ export class ClaudeClient {
   async generateTechnicalCards(request: {
     prompt: string;
     modelId: string;
+    stableContext?: string;
   }): Promise<AICardsResponse> {
     return withRetry(
       async () => {
         try {
           logger.info(`Generating technical cards with Claude`, { modelId: request.modelId });
-          const result = await this.callWithJSONParse<AICardsResponse>(
+          const { result, tokensUsed } = await this.callWithJSONParse<AICardsResponse>(
             request.prompt,
-            request.modelId
+            request.modelId,
+            request.stableContext,
+            'generateTechnicalCards'
           );
           logger.info(`Card generation complete`, { cardCount: result.cards?.length });
-          return result;
+          return { ...result, tokensUsed };
         } catch (error: unknown) {
           if (error instanceof ClaudeAPIError) throw error;
           const message = error instanceof Error ? error.message : 'Unknown error';
@@ -367,11 +434,35 @@ export class ClaudeClient {
       model: request.modelId,
       max_tokens: maxTokens,
       temperature,
-      system: BREAKDOWN_SYSTEM_PROMPT,
+      system: [{ type: 'text', text: BREAKDOWN_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
       messages: [{ role: 'user', content: request.prompt }],
     });
 
     const finalMessage = await stream.finalMessage();
+    const cacheUsage = finalMessage.usage as typeof finalMessage.usage & {
+      cache_creation_input_tokens?: number;
+      cache_read_input_tokens?: number;
+    };
+
+    logger.info(`Claude token usage`, {
+      method: 'generateText',
+      modelId: request.modelId,
+      inputTokens: finalMessage.usage.input_tokens,
+      outputTokens: finalMessage.usage.output_tokens,
+      cacheCreationTokens: cacheUsage.cache_creation_input_tokens ?? 0,
+      cacheReadTokens: cacheUsage.cache_read_input_tokens ?? 0,
+    });
+
+    await recordTokenUsage({
+      timestamp: new Date().toISOString(),
+      method: 'generateText',
+      modelId: request.modelId,
+      inputTokens: finalMessage.usage.input_tokens,
+      outputTokens: finalMessage.usage.output_tokens,
+      cacheCreationTokens: cacheUsage.cache_creation_input_tokens ?? 0,
+      cacheReadTokens: cacheUsage.cache_read_input_tokens ?? 0,
+    });
+
     const content = finalMessage.content[0];
 
     if (content.type !== 'text') {

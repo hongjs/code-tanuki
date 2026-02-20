@@ -107,6 +107,11 @@ export interface AIAnalysisResponse {
   needsClarification: boolean;
   questions?: ClarifyingQuestion[];
   analysisNotes?: string;
+  knowledgeSuggestion?: KnowledgeSuggestion;
+  tokensUsed?: {
+    input: number;
+    output: number;
+  };
 }
 
 export interface KnowledgeSuggestion {

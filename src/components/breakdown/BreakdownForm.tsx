@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, KeyboardEvent } from 'react';
+import { useState, useEffect, useRef, KeyboardEvent } from 'react';
 import {
   Box,
   TextField,
@@ -69,6 +69,9 @@ export function BreakdownForm() {
   const [knowledgeDialogOpen, setKnowledgeDialogOpen] = useState(false);
   const [currentKnowledge, setCurrentKnowledge] = useState('');
 
+  // Ref for scrolling to card preview
+  const cardPreviewRef = useRef<HTMLDivElement>(null);
+
   // Config for ModelSelector
   const [config, setConfig] = useState<AppConfig>({ hasAnthropicKey: true, hasGeminiKey: false, hasJiraConfig: false });
   const [configLoading, setConfigLoading] = useState(true);
@@ -82,6 +85,14 @@ export function BreakdownForm() {
       })
       .catch(() => setConfigLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (status === 'preview' && cards.length > 0) {
+      setTimeout(() => {
+        cardPreviewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }, [status, cards.length]);
 
   const isRunning = !['idle', 'clarifying', 'preview', 'knowledge-update', 'completed', 'error'].includes(status);
 
@@ -522,7 +533,7 @@ export function BreakdownForm() {
 
       {/* Card Preview */}
       {status === 'preview' && cards.length > 0 && (
-        <Box sx={{ mt: 4 }}>
+        <Box ref={cardPreviewRef} sx={{ mt: 4 }}>
           <CardPreviewPanel
             cards={cards}
             summary={summary}

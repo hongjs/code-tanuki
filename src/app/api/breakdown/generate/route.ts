@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { ClaudeClient } from '@/lib/api/claude';
 import { getBreakdownStorage } from '@/lib/storage';
-import { validateCardStructure } from '@/lib/breakdown/orchestrator';
-import { buildCardGenerationPrompt } from '@/lib/constants/breakdown-prompts';
+import { validateCardStructure, applyKnowledgeSuggestion } from '@/lib/breakdown/orchestrator';
+import { buildStableContext, buildCardGenerationDynamic } from '@/lib/constants/breakdown-prompts';
 import { logger } from '@/lib/logger/winston';
 
 const generateSchema = z.object({
@@ -41,24 +41,25 @@ export async function POST(request: NextRequest) {
 
     await storage.updateSession(breakdownId, { status: 'generating-cards' });
 
-    const prompt = buildCardGenerationPrompt(
+    const stableContext = buildStableContext(tickets, knowledge, imageDescription);
+    const dynamicPrompt = buildCardGenerationDynamic(
       tickets,
-      knowledge,
       qaHistory,
       session.detailLevel,
       session.enableDevCoaching,
-      imageDescription,
       session.additionalPrompt
     );
 
     const round = session.qaRoundCount + 1;
-    await storage.savePrompt(breakdownId, round, 'cards', prompt);
+    // Save combined prompt for debugging
+    await storage.savePrompt(breakdownId, round, 'cards', `${stableContext}\n\n${dynamicPrompt}`);
 
     logger.info(`Generating technical cards`, { breakdownId, modelId: session.modelId });
 
     const claudeClient = new ClaudeClient(process.env.ANTHROPIC_API_KEY!);
     const aiResponse = await claudeClient.generateTechnicalCards({
-      prompt,
+      prompt: dynamicPrompt,
+      stableContext,
       modelId: session.modelId,
     });
 
@@ -67,6 +68,18 @@ export async function POST(request: NextRequest) {
     // Validate and clamp story points
     const validatedCards = validateCardStructure(aiResponse.cards || [], session.enableDevCoaching);
     await storage.saveCards(breakdownId, validatedCards);
+
+    // Auto-apply knowledge suggestion if AI returned one — fire and forget so it
+    // doesn't block the preview from appearing to the user.
+    if (aiResponse.knowledgeSuggestion) {
+      applyKnowledgeSuggestion(
+        aiResponse.knowledgeSuggestion,
+        storage,
+        claudeClient,
+        session.modelId,
+        validatedCards
+      ).catch(() => {/* already logged inside applyKnowledgeSuggestion */});
+    }
 
     await storage.updateSession(breakdownId, {
       status: 'preview',

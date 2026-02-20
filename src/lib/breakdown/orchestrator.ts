@@ -3,16 +3,40 @@ import { ClaudeClient } from '@/lib/api/claude';
 import {
   AIAnalysisResponse,
   FullJiraTicket,
+  KnowledgeSuggestion,
   QAEntry,
   TechnicalCard,
 } from '@/types/breakdown';
 import {
-  buildInitialAnalysisPrompt,
-  buildReAnalysisPrompt,
+  buildStableContext,
+  buildInitialAnalysisDynamic,
+  buildReAnalysisDynamic,
+  buildKnowledgeUpdatePrompt,
 } from '@/lib/constants/breakdown-prompts';
 import { logger } from '@/lib/logger/winston';
 
 const FIBONACCI_POINTS = [1, 2, 3, 5, 8, 13];
+
+export async function applyKnowledgeSuggestion(
+  suggestion: KnowledgeSuggestion,
+  storage: BreakdownStorageAdapter,
+  claudeClient: ClaudeClient,
+  modelId: string,
+  cards: TechnicalCard[] = []
+): Promise<void> {
+  try {
+    const currentKnowledge = await storage.readKnowledge();
+    const prompt = buildKnowledgeUpdatePrompt(currentKnowledge, suggestion, cards);
+    const updatedKnowledge = await claudeClient.generateText({ prompt, modelId });
+    await storage.writeKnowledge(updatedKnowledge);
+    logger.info('Knowledge base auto-updated from AI suggestion', { section: suggestion.section });
+  } catch (error) {
+    logger.warn('Failed to auto-apply knowledge suggestion (non-fatal)', {
+      error: error instanceof Error ? error.message : String(error),
+      section: suggestion.section,
+    });
+  }
+}
 
 function clampToFibonacci(points: number): number {
   if (FIBONACCI_POINTS.includes(points)) return points;
@@ -46,15 +70,18 @@ export async function runAnalysis(
 
   const round = session.qaRoundCount + 1;
 
-  const prompt =
+  const stableContext = buildStableContext(tickets, knowledge, imageDescription);
+  const dynamicPrompt =
     qaHistory.length === 0
-      ? buildInitialAnalysisPrompt(tickets, knowledge, imageDescription, session.additionalPrompt)
-      : buildReAnalysisPrompt(tickets, knowledge, qaHistory, session.additionalPrompt);
+      ? buildInitialAnalysisDynamic(tickets, session.additionalPrompt)
+      : buildReAnalysisDynamic(tickets, qaHistory, session.additionalPrompt);
 
-  await storage.savePrompt(breakdownId, round, 'analysis', prompt);
+  // Save combined prompt for debugging
+  await storage.savePrompt(breakdownId, round, 'analysis', `${stableContext}\n\n${dynamicPrompt}`);
 
   const aiResponse = await claudeClient.analyzeUserStory({
-    prompt,
+    prompt: dynamicPrompt,
+    stableContext,
     modelId: session.modelId,
   });
 
@@ -66,6 +93,17 @@ export async function runAnalysis(
     needsClarification: aiResponse.needsClarification,
     questionCount: aiResponse.questions?.length || 0,
   });
+
+  // Auto-apply knowledge suggestion if AI returned one — fire and forget so it
+  // doesn't block the clarifying-questions dialog from appearing to the user.
+  if (aiResponse.knowledgeSuggestion) {
+    applyKnowledgeSuggestion(
+      aiResponse.knowledgeSuggestion,
+      storage,
+      claudeClient,
+      session.modelId
+    ).catch(() => {/* already logged inside applyKnowledgeSuggestion */});
+  }
 
   const shouldAskMore =
     aiResponse.needsClarification &&
@@ -96,15 +134,17 @@ export function validateCardStructure(
 ): TechnicalCard[] {
   return cards.map((card) => ({
     ...card,
-    storyPoints: clampToFibonacci(card.storyPoints),
+    storyPoints: clampToFibonacci(card.storyPoints ?? 3),
+    acceptanceCriteria: Array.isArray(card.acceptanceCriteria) ? card.acceptanceCriteria : [],
+    risks: Array.isArray(card.risks) ? card.risks : [],
     testStrategy: {
       unit:
-        card.testStrategy.unit.length > 0
+        Array.isArray(card.testStrategy?.unit) && card.testStrategy.unit.length > 0
           ? card.testStrategy.unit
           : ['Verify core logic works correctly'],
-      integration: card.testStrategy.integration,
-      e2e: card.testStrategy.e2e,
-      regression: card.testStrategy.regression,
+      integration: Array.isArray(card.testStrategy?.integration) ? card.testStrategy.integration : [],
+      e2e: Array.isArray(card.testStrategy?.e2e) ? card.testStrategy.e2e : [],
+      regression: Array.isArray(card.testStrategy?.regression) ? card.testStrategy.regression : [],
     },
     challengeQuestion: enableCoaching ? card.challengeQuestion : undefined,
   }));
