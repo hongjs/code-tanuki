@@ -138,6 +138,10 @@ function cleanPrBody(body: string): string {
   return cleaned.trim();
 }
 
+export function buildKnowledgeSection(knowledge: string): string {
+  return `## 📚 Knowledge Base Context\n${knowledge}\n\n`;
+}
+
 export function buildReviewPrompt(
   diff: string,
   prTitle: string,

@@ -18,6 +18,10 @@ export interface ClaudeReviewResponse {
     input: number;
     output: number;
   };
+  cacheTokens?: {
+    write: number;
+    read: number;
+  };
   warning?: string;
   knowledgeSection?: string;
 }

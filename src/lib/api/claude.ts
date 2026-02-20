@@ -3,7 +3,7 @@ import { ClaudeReviewRequest, ClaudeReviewResponse } from '@/types/claude';
 import { ClaudeAPIError } from '@/types/errors';
 import { logger } from '../logger/winston';
 import { withRetry } from '../utils/retry';
-import { SYSTEM_PROMPT, buildReviewPrompt } from '../constants/prompts';
+import { SYSTEM_PROMPT, buildReviewPrompt, buildKnowledgeSection } from '../constants/prompts';
 
 export class ClaudeClient {
   private client: Anthropic;
@@ -19,6 +19,9 @@ export class ClaudeClient {
 
     this.client = new Anthropic({
       apiKey,
+      defaultHeaders: {
+        'anthropic-beta': 'prompt-caching-2024-07-31',
+      },
     });
   }
 
@@ -32,14 +35,26 @@ export class ClaudeClient {
             diffLength: request.diff.length,
           });
 
+          // Build PR-specific prompt WITHOUT knowledge (knowledge cached separately)
           const userPrompt = buildReviewPrompt(
             request.diff,
             request.prTitle,
             request.prBody,
             request.jiraTicket,
-            request.additionalPrompt,
-            request.knowledge
+            request.additionalPrompt
           );
+
+          // Build user content: cache knowledge block separately from PR-specific content
+          const userContent = request.knowledge
+            ? [
+                {
+                  type: 'text' as const,
+                  text: buildKnowledgeSection(request.knowledge),
+                  cache_control: { type: 'ephemeral' as const },
+                },
+                { type: 'text' as const, text: userPrompt },
+              ]
+            : userPrompt;
 
           const maxTokens = request.maxTokens || parseInt(process.env.CLAUDE_MAX_TOKENS || '8192');
           const temperature = parseFloat(process.env.CLAUDE_TEMPERATURE || '0.3');
@@ -48,11 +63,17 @@ export class ClaudeClient {
             model: request.modelId,
             max_tokens: maxTokens,
             temperature,
-            system: SYSTEM_PROMPT,
+            system: [
+              {
+                type: 'text' as const,
+                text: SYSTEM_PROMPT,
+                cache_control: { type: 'ephemeral' as const },
+              },
+            ],
             messages: [
               {
                 role: 'user',
-                content: userPrompt,
+                content: userContent,
               },
             ],
           });
@@ -199,9 +220,23 @@ export class ClaudeClient {
             output: finalMessage.usage.output_tokens,
           };
 
+          // Extract cache token usage
+          const usage = finalMessage.usage as typeof finalMessage.usage & {
+            cache_creation_input_tokens?: number;
+            cache_read_input_tokens?: number;
+          };
+          const cacheWrite = usage.cache_creation_input_tokens ?? 0;
+          const cacheRead = usage.cache_read_input_tokens ?? 0;
+
+          if (cacheWrite > 0 || cacheRead > 0) {
+            reviewResponse.cacheTokens = { write: cacheWrite, read: cacheRead };
+          }
+
           logger.info(`Successfully received AI review from Claude`, {
             commentsCount: reviewResponse.comments.length,
             tokensUsed: reviewResponse.tokensUsed,
+            cacheWrite,
+            cacheRead,
           });
 
           return reviewResponse;
