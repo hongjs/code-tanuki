@@ -32,6 +32,7 @@ export interface ReviewMetadata {
   steps: {
     fetchGitHub: StepResult;
     fetchJira?: StepResult;
+    imageVision?: StepResult & { imagesFound?: number; imagesAnalyzed?: number };
     aiReview: StepResult;
     postGitHubComments: StepResult;
     postJiraComment?: StepResult;

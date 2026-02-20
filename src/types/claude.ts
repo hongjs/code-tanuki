@@ -10,6 +10,7 @@ export interface ClaudeReviewRequest {
   maxTokens?: number;
   modelId: string;
   knowledge?: string;
+  imageDescriptions?: string[];
 }
 
 export interface ClaudeReviewResponse {

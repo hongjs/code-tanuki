@@ -142,13 +142,19 @@ export function buildKnowledgeSection(knowledge: string): string {
   return `## 📚 Knowledge Base Context\n${knowledge}\n\n`;
 }
 
+export function buildImageSection(descriptions: string[]): string {
+  const lines = descriptions.map((desc, i) => `${i + 1}. ${desc}`).join('\n');
+  return `## 📸 Image Context\nThe following images were found and analyzed:\n\n${lines}\n\n`;
+}
+
 export function buildReviewPrompt(
   diff: string,
   prTitle: string,
   prBody: string,
   jiraTicket?: JiraTicket,
   additionalPrompt?: string,
-  knowledge?: string
+  knowledge?: string,
+  imageDescriptions?: string[]
 ): string {
   // Annotate the diff with line numbers for accurate AI comments
   const annotatedDiff = annotateDiffWithLineNumbers(diff);
@@ -164,6 +170,10 @@ export function buildReviewPrompt(
 ${knowledge}
 
 `;
+  }
+
+  if (imageDescriptions?.length) {
+    prompt += buildImageSection(imageDescriptions);
   }
 
   prompt += `## PR Details

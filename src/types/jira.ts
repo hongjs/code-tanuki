@@ -1,3 +1,10 @@
+export interface JiraAttachment {
+  id: string;
+  filename: string;
+  mimeType: string;
+  content: string; // download URL from Jira API
+}
+
 export interface JiraTicket {
   key: string;
   summary: string;
@@ -10,6 +17,7 @@ export interface JiraTicket {
     displayName: string;
     emailAddress: string;
   };
+  attachments?: JiraAttachment[];
 }
 
 export interface JiraCommentRequest {
