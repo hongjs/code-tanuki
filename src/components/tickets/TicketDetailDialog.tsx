@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 import {
   Dialog,
   DialogTitle,
@@ -182,13 +183,16 @@ export function TicketDetailDialog({
     '& table': {
       borderCollapse: 'collapse',
       width: '100%',
-      mb: 1,
+      mb: 1.5,
+      display: 'block',
+      overflowX: 'auto',
     },
     '& th, & td': {
       border: '1px solid #e2e8f0',
       px: 1.5,
       py: 0.75,
       textAlign: 'left',
+      fontSize: '0.95rem',
     },
     '& th': {
       backgroundColor: '#f8fafc',
@@ -197,6 +201,9 @@ export function TicketDetailDialog({
     '& a': { color: '#6366f1', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } },
     '& hr': { border: 'none', borderTop: '1px solid #e2e8f0', my: 1.5 },
     '& input[type="checkbox"]': { mr: 0.5 },
+    // inline HTML from ADF (textColor → span, underline → u)
+    '& span[style]': { display: 'inline' },
+    '& u': { textDecoration: 'underline' },
   };
 
   return (
@@ -397,7 +404,7 @@ export function TicketDetailDialog({
                 Description
               </Typography>
               <Box sx={markdownSx}>
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
                   {ticket.description}
                 </ReactMarkdown>
               </Box>
@@ -421,12 +428,54 @@ export function TicketDetailDialog({
                 Acceptance Criteria
               </Typography>
               <Box sx={markdownSx}>
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
                   {ticket.acceptanceCriteria}
                 </ReactMarkdown>
               </Box>
             </Box>
           ) : null}
+
+          {/* Attachments Section */}
+          {!editMode && ticket.attachments && ticket.attachments.length > 0 && (
+            <>
+              <Divider />
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, fontSize: '1rem' }}>
+                  Attachments
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                  {ticket.attachments
+                    .filter((a) => a.mimeType?.startsWith('image/'))
+                    .map((attachment) => (
+                      <Box
+                        key={attachment.id}
+                        sx={{
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '8px',
+                          overflow: 'hidden',
+                          maxWidth: '100%',
+                          width: '400px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                        }}
+                      >
+                        <Box sx={{ p: 1, backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                          <Typography variant="caption" sx={{ fontWeight: 600, color: '#475569', wordBreak: 'break-all' }}>
+                            {attachment.filename}
+                          </Typography>
+                        </Box>
+                        <img
+                          src={`/api/jira/attachments/${attachment.id}`}
+                          alt={attachment.filename || 'Attachment'}
+                          style={{ width: '100%', height: 'auto', display: 'block' }}
+                          loading="lazy"
+                        />
+                      </Box>
+                    ))}
+                </Box>
+              </Box>
+            </>
+          )}
 
           <Divider />
 

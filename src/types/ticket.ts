@@ -1,3 +1,5 @@
+import { JiraAttachment } from './jira';
+
 export type TicketType = 'Epic' | 'Story' | 'Task' | 'Sub-task' | 'Bug';
 export type TicketStatus = 'To Do' | 'In Progress' | 'Done';
 export type TicketPriority = 'Highest' | 'High' | 'Medium' | 'Low' | 'Lowest';
@@ -16,6 +18,7 @@ export interface LocalTicket {
   subtaskKeys?: string[];   // jiraKey of subtasks
   labels?: string[];
   acceptanceCriteria?: string;
+  attachments?: JiraAttachment[];
   createdAt: string;        // ISO - when added locally
   updatedAt: string;        // ISO - when last edited locally
   syncedAt?: string;        // ISO - when last synced from Jira
