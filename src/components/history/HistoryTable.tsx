@@ -116,7 +116,7 @@ export function HistoryTable() {
       width: 200,
       renderCell: (params) => (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <CodeIcon sx={{ fontSize: 18, color: '#667eea' }} />
+          <CodeIcon sx={{ fontSize: 18, color: '#6366f1' }} />
           <Typography variant="body2" sx={{ fontWeight: 500 }}>
             {params.value}
           </Typography>
@@ -134,7 +134,7 @@ export function HistoryTable() {
           rel="noopener"
           sx={{
             fontWeight: 600,
-            color: '#667eea',
+            color: '#6366f1',
             textDecoration: 'none',
             '&:hover': {
               textDecoration: 'underline',
@@ -173,8 +173,8 @@ export function HistoryTable() {
             label={params.value}
             size="small"
             sx={{
-              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-              color: 'white',
+              backgroundColor: '#fdf2f8',
+              color: '#9d174d',
               fontWeight: 600,
             }}
           />
@@ -192,14 +192,11 @@ export function HistoryTable() {
         <Chip
           label={params.value}
           size="small"
-          sx={{
-            background:
-              params.value === 'success'
-                ? 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)'
-                : 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-            color: 'white',
-            fontWeight: 600,
-          }}
+          sx={
+            params.value === 'success'
+              ? { backgroundColor: '#dcfce7', color: '#14532d', fontWeight: 600 }
+              : { backgroundColor: '#fee2e2', color: '#991b1b', fontWeight: 600 }
+          }
         />
       ),
     },
@@ -212,8 +209,8 @@ export function HistoryTable() {
           label={params.value?.length || 0}
           size="small"
           sx={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: 'white',
+            backgroundColor: '#eef2ff',
+            color: '#4338ca',
             fontWeight: 600,
           }}
         />
@@ -255,8 +252,9 @@ export function HistoryTable() {
               sx={{
                 width: 56,
                 height: 56,
-                background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                boxShadow: '0 8px 20px rgba(240, 147, 251, 0.4)',
+                backgroundColor: '#fce7f3',
+                color: '#9d174d',
+                boxShadow: '0 8px 20px rgba(249, 168, 212, 0.3)',
               }}
             >
               <HistoryIcon sx={{ fontSize: 28 }} />
@@ -265,12 +263,9 @@ export function HistoryTable() {
               <Typography
                 variant="h4"
                 sx={{
-                  background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
                   fontWeight: 800,
                   letterSpacing: '-0.5px',
+                  color: '#9d174d',
                 }}
               >
                 Review History
@@ -285,51 +280,57 @@ export function HistoryTable() {
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 2, mb: 3 }}>
             <Grow in timeout={800}>
               <Card
+                elevation={0}
                 sx={{
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  color: 'white',
+                  backgroundColor: '#eef2ff',
+                  border: '1px solid #c7d2fe',
                   p: 2.5,
+                  borderRadius: '16px',
                 }}
               >
-                <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+                <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5, color: '#3730a3' }}>
                   {total}
                 </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                <Typography variant="body2" sx={{ color: '#6366f1' }}>
                   Total Reviews
                 </Typography>
               </Card>
             </Grow>
             <Grow in timeout={1000}>
               <Card
+                elevation={0}
                 sx={{
-                  background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-                  color: 'white',
+                  backgroundColor: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
                   p: 2.5,
+                  borderRadius: '16px',
                 }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <TrendingUpIcon />
-                  <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                  <TrendingUpIcon sx={{ color: '#15803d' }} />
+                  <Typography variant="h4" sx={{ fontWeight: 700, color: '#14532d' }}>
                     {total > 0 ? Math.round((successCount / total) * 100) : 0}%
                   </Typography>
                 </Box>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                <Typography variant="body2" sx={{ color: '#15803d' }}>
                   Success Rate
                 </Typography>
               </Card>
             </Grow>
             <Grow in timeout={1200}>
               <Card
+                elevation={0}
                 sx={{
-                  background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                  color: 'white',
+                  backgroundColor: '#fdf2f8',
+                  border: '1px solid #fbcfe8',
                   p: 2.5,
+                  borderRadius: '16px',
                 }}
               >
-                <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+                <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5, color: '#9d174d' }}>
                   {totalComments}
                 </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                <Typography variant="body2" sx={{ color: '#be185d' }}>
                   Total Comments
                 </Typography>
               </Card>
@@ -354,7 +355,7 @@ export function HistoryTable() {
               left: 0,
               right: 0,
               height: '4px',
-              background: 'linear-gradient(90deg, #f093fb 0%, #f5576c 50%, #667eea 100%)',
+              background: 'linear-gradient(90deg, #fbcfe8 0%, #ddd6fe 50%, #c7d2fe 100%)',
             },
           }}
         >
@@ -385,8 +386,9 @@ export function HistoryTable() {
                     sx={{
                       width: 80,
                       height: 80,
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                      opacity: 0.2,
+                      backgroundColor: '#eef2ff',
+                      color: '#6366f1',
+                      opacity: 0.5,
                     }}
                   >
                     <HistoryIcon sx={{ fontSize: 40 }} />
@@ -419,7 +421,7 @@ export function HistoryTable() {
                       outline: 'none',
                     },
                     '& .MuiDataGrid-row:hover': {
-                      backgroundColor: 'rgba(102, 126, 234, 0.04)',
+                      backgroundColor: 'rgba(99, 102, 241, 0.04)',
                     },
                     '& .MuiDataGrid-columnHeaders': {
                       backgroundColor: '#f8fafc',
@@ -437,7 +439,7 @@ export function HistoryTable() {
           </Box>
         </Card>
       </Grow>
-      
+
       <Menu
         anchorEl={menuAnchorEl}
         open={Boolean(menuAnchorEl)}

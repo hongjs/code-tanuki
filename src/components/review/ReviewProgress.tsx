@@ -28,18 +28,18 @@ interface ReviewProgressProps {
   error?: string;
 }
 
-const ColorlibConnector = styled(StepConnector)(({ theme }) => ({
+const ColorlibConnector = styled(StepConnector)(() => ({
   [`&.${stepConnectorClasses.alternativeLabel}`]: {
     top: 22,
   },
   [`&.${stepConnectorClasses.active}`]: {
     [`& .${stepConnectorClasses.line}`]: {
-      backgroundImage: 'linear-gradient(95deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+      backgroundImage: 'linear-gradient(95deg, #a5b4fc 0%, #c4b5fd 50%, #f0abfc 100%)',
     },
   },
   [`&.${stepConnectorClasses.completed}`]: {
     [`& .${stepConnectorClasses.line}`]: {
-      backgroundImage: 'linear-gradient(95deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+      backgroundImage: 'linear-gradient(95deg, #a5b4fc 0%, #c4b5fd 50%, #f0abfc 100%)',
     },
   },
   [`& .${stepConnectorClasses.line}`]: {
@@ -51,11 +51,11 @@ const ColorlibConnector = styled(StepConnector)(({ theme }) => ({
 }));
 
 const steps = [
-  { key: 'fetching-github', label: 'GitHub PR', icon: GitHubIcon, color: '#667eea' },
-  { key: 'fetching-jira', label: 'Jira Ticket', icon: DescriptionIcon, color: '#764ba2' },
-  { key: 'ai-review', label: 'AI Analysis', icon: AutoAwesomeIcon, color: '#f093fb' },
-  { key: 'approval', label: 'Approval', icon: HowToRegIcon, color: '#3b82f6' },
-  { key: 'posting-comments', label: 'Post Comments', icon: CloudUploadIcon, color: '#f5576c' },
+  { key: 'fetching-github', label: 'GitHub PR', icon: GitHubIcon, bg: '#eef2ff', color: '#4338ca' },
+  { key: 'fetching-jira', label: 'Jira Ticket', icon: DescriptionIcon, bg: '#f5f3ff', color: '#6d28d9' },
+  { key: 'ai-review', label: 'AI Analysis', icon: AutoAwesomeIcon, bg: '#fdf4ff', color: '#7e22ce' },
+  { key: 'approval', label: 'Approval', icon: HowToRegIcon, bg: '#eff6ff', color: '#1d4ed8' },
+  { key: 'posting-comments', label: 'Post Comments', icon: CloudUploadIcon, bg: '#fff1f2', color: '#be123c' },
 ];
 
 export function ReviewProgress({ status, error }: ReviewProgressProps) {
@@ -97,8 +97,8 @@ export function ReviewProgress({ status, error }: ReviewProgressProps) {
               gap: 2,
               p: 2,
               borderRadius: '12px',
-              background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.1) 100%)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
+              background: 'rgba(239, 68, 68, 0.06)',
+              border: '1px solid rgba(239, 68, 68, 0.2)',
             }}
           >
             <ErrorIcon sx={{ color: '#ef4444', fontSize: 28 }} />
@@ -116,8 +116,8 @@ export function ReviewProgress({ status, error }: ReviewProgressProps) {
               gap: 2,
               p: 2,
               borderRadius: '12px',
-              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%)',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
+              background: 'rgba(16, 185, 129, 0.06)',
+              border: '1px solid rgba(16, 185, 129, 0.2)',
             }}
           >
             <CheckCircleIcon sx={{ color: '#10b981', fontSize: 28 }} />
@@ -133,10 +133,10 @@ export function ReviewProgress({ status, error }: ReviewProgressProps) {
               sx={{
                 height: 6,
                 borderRadius: 3,
-                background: 'rgba(102, 126, 234, 0.1)',
+                background: 'rgba(99, 102, 241, 0.08)',
                 '& .MuiLinearProgress-bar': {
                   borderRadius: 3,
-                  background: 'linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+                  background: 'linear-gradient(90deg, #a5b4fc 0%, #c4b5fd 50%, #f0abfc 100%)',
                 },
               }}
             />
@@ -163,13 +163,14 @@ export function ReviewProgress({ status, error }: ReviewProgressProps) {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            background: isActive || isCompleted
-                              ? `linear-gradient(135deg, ${step.color} 0%, ${step.color}dd 100%)`
-                              : '#f3f4f6',
-                            color: isActive || isCompleted ? 'white' : '#9ca3af',
+                            background: isActive || isCompleted ? step.bg : '#f3f4f6',
+                            color: isActive || isCompleted ? step.color : '#9ca3af',
                             boxShadow: isActive
-                              ? `0 4px 12px ${step.color}40`
+                              ? `0 4px 12px ${step.bg}`
                               : 'none',
+                            border: isActive || isCompleted
+                              ? `1.5px solid ${step.color}30`
+                              : '1.5px solid transparent',
                             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                             position: 'relative',
                             '&::after': isActive
@@ -179,7 +180,7 @@ export function ReviewProgress({ status, error }: ReviewProgressProps) {
                                   width: '100%',
                                   height: '100%',
                                   borderRadius: '50%',
-                                  border: `2px solid ${step.color}`,
+                                  border: `2px solid ${step.color}50`,
                                   animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                                   '@keyframes pulse': {
                                     '0%, 100%': {
@@ -196,7 +197,7 @@ export function ReviewProgress({ status, error }: ReviewProgressProps) {
                           }}
                         >
                           {isActive ? (
-                            <CircularProgress size={24} sx={{ color: 'white' }} />
+                            <CircularProgress size={24} sx={{ color: step.color }} />
                           ) : isCompleted ? (
                             <CheckCircleIcon sx={{ fontSize: 24 }} />
                           ) : (

@@ -37,17 +37,18 @@ export function HistoryFilters({
         alignItems: 'center',
         p: 2,
         borderRadius: '12px',
-        background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%)',
-        border: '1px solid rgba(102, 126, 234, 0.1)',
+        background: 'rgba(99, 102, 241, 0.04)',
+        border: '1px solid rgba(99, 102, 241, 0.1)',
       }}
     >
       <Chip
-        icon={<FilterListIcon />}
+        icon={<FilterListIcon sx={{ fontSize: '16px !important', color: '#6366f1 !important' }} />}
         label="Filters"
         sx={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white',
+          backgroundColor: '#eef2ff',
+          color: '#4338ca',
           fontWeight: 600,
+          '& .MuiChip-icon': { color: '#6366f1' },
         }}
       />
 
@@ -56,9 +57,17 @@ export function HistoryFilters({
         value={search}
         onChange={(e) => onSearchChange(e.target.value)}
         size="small"
-        sx={{ minWidth: 280 }}
+        sx={{
+          minWidth: 280,
+          '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: '#a5b4fc',
+          },
+          '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderColor: '#6366f1',
+          },
+        }}
         InputProps={{
-          startAdornment: <SearchIcon sx={{ mr: 1, color: '#667eea' }} />,
+          startAdornment: <SearchIcon sx={{ mr: 1, color: '#a5b4fc', fontSize: 20 }} />,
         }}
       />
 
@@ -67,7 +76,7 @@ export function HistoryFilters({
         sx={{
           minWidth: 150,
           '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
-            borderColor: '#667eea',
+            borderColor: '#a5b4fc',
           },
         }}
       >
@@ -81,7 +90,7 @@ export function HistoryFilters({
                   width: 8,
                   height: 8,
                   borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                  backgroundColor: '#86efac',
                 }}
               />
               Success
@@ -94,7 +103,7 @@ export function HistoryFilters({
                   width: 8,
                   height: 8,
                   borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                  backgroundColor: '#fca5a5',
                 }}
               />
               Error
@@ -108,7 +117,7 @@ export function HistoryFilters({
         sx={{
           minWidth: 200,
           '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
-            borderColor: '#667eea',
+            borderColor: '#a5b4fc',
           },
         }}
       >
@@ -130,9 +139,9 @@ export function HistoryFilters({
             borderRadius: '8px',
             textTransform: 'none',
             fontWeight: 600,
-            color: '#667eea',
+            color: '#6366f1',
             '&:hover': {
-              background: 'rgba(102, 126, 234, 0.1)',
+              background: 'rgba(99, 102, 241, 0.08)',
             },
           }}
         >
