@@ -291,7 +291,11 @@ export class JiraClient {
     );
   }
 
-  async fetchFullIssue(jiraKey: string, storyPointsField: string = 'customfield_10016'): Promise<Partial<LocalTicket>> {
+  async fetchFullIssue(
+    jiraKey: string,
+    storyPointsField: string = 'customfield_10016',
+    epicLinkField: string = 'customfield_10014'
+  ): Promise<Partial<LocalTicket>> {
     return withRetry(
       async () => {
         try {
@@ -301,6 +305,20 @@ export class JiraClient {
           const { data } = response;
           const fields = data.fields;
 
+          // parent key: next-gen projects use fields.parent.key,
+          // classic projects use Epic Link custom field for story→epic relationship
+          const parentKey: string | undefined =
+            fields.parent?.key ??
+            (typeof fields[epicLinkField] === 'string' ? fields[epicLinkField] : undefined) ??
+            undefined;
+
+          logger.info('Resolved parentKey from Jira', {
+            jiraKey,
+            parentFromParentField: fields.parent?.key,
+            parentFromEpicLink: fields[epicLinkField],
+            resolved: parentKey,
+          });
+
           const partial: Partial<LocalTicket> = {
             title: fields.summary,
             status: fields.status?.name,
@@ -308,12 +326,9 @@ export class JiraClient {
             priority: fields.priority?.name,
             assignee: fields.assignee?.displayName,
             storyPoints: fields[storyPointsField] ?? undefined,
+            parentKey,
             syncedAt: new Date().toISOString(),
           };
-
-          if (fields.parent?.key) {
-            partial.parentKey = fields.parent.key;
-          }
 
           logger.info('Successfully fetched Jira issue for sync', { jiraKey });
           return partial;

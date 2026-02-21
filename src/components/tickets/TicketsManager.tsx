@@ -403,7 +403,7 @@ export function TicketsManager() {
                 Manage AI-generated tickets and sync with Jira
               </Typography>
             </Box>
-            <Button
+            {/* <Button
               variant="contained"
               startIcon={<AddIcon />}
               onClick={() => {
@@ -421,7 +421,7 @@ export function TicketsManager() {
               }}
             >
               New Ticket
-            </Button>
+            </Button> */}
           </Box>
 
           {/* Stats */}

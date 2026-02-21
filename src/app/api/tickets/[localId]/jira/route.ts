@@ -104,11 +104,13 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     }
 
     const jiraClient = getJiraClient();
-    const synced = await jiraClient.fetchFullIssue(ticket.jiraKey, env.JIRA_STORY_POINTS_FIELD);
+    const synced = await jiraClient.fetchFullIssue(ticket.jiraKey, env.JIRA_STORY_POINTS_FIELD, env.JIRA_EPIC_LINK_FIELD);
 
     const updated = {
       ...ticket,
       ...synced,
+      // Explicitly clear parentKey if Jira returned no parent
+      parentKey: synced.parentKey ?? undefined,
       updatedAt: new Date().toISOString(),
     };
     await ticketStorage.save(updated);

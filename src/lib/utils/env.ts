@@ -13,6 +13,7 @@ const envSchema = z.object({
   JIRA_API_TOKEN: z.string().min(1),
   JIRA_PROJECT_KEY: z.string().optional(),
   JIRA_STORY_POINTS_FIELD: z.string().default('customfield_10016'),
+  JIRA_EPIC_LINK_FIELD: z.string().default('customfield_10014'),
 
   ANTHROPIC_API_KEY: z.string().min(1, 'Anthropic API key is required'),
   CLAUDE_MODEL_DEFAULT: z.string().default(DEFAULT_CLAUDE_MODEL_ID),
