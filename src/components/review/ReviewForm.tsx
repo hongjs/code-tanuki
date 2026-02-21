@@ -378,7 +378,7 @@ export function ReviewForm() {
                 width: 56,
                 height: 56,
                 background: '#ffffff',
-                boxShadow: '0 8px 20px rgba(102, 126, 234, 0.4)',
+                boxShadow: '0 8px 20px rgba(99, 102, 241, 0.2)',
               }}
             >
               <img src="/icon.png" alt="Code Tanuki" width={40} height={40} />
@@ -387,12 +387,9 @@ export function ReviewForm() {
               <Typography
                 variant="h4"
                 sx={{
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
                   fontWeight: 800,
                   letterSpacing: '-0.5px',
+                  color: '#3730a3',
                 }}
               >
                 AI-Powered Code Review
@@ -406,32 +403,32 @@ export function ReviewForm() {
           {/* Feature Pills */}
           <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
             <Chip
-              icon={<SpeedIcon />}
+              icon={<SpeedIcon sx={{ color: '#be185d !important' }} />}
               label="Fast Analysis"
               size="small"
               sx={{
-                background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                color: 'white',
+                backgroundColor: '#fdf2f8',
+                color: '#be185d',
                 fontWeight: 600,
               }}
             />
             <Chip
-              icon={<SecurityIcon />}
+              icon={<SecurityIcon sx={{ color: '#1d4ed8 !important' }} />}
               label="Security Focused"
               size="small"
               sx={{
-                background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-                color: 'white',
+                backgroundColor: '#eff6ff',
+                color: '#1d4ed8',
                 fontWeight: 600,
               }}
             />
             <Chip
-              icon={<AutoAwesomeIcon />}
+              icon={<AutoAwesomeIcon sx={{ color: '#15803d !important' }} />}
               label="AI-Powered"
               size="small"
               sx={{
-                background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-                color: 'white',
+                backgroundColor: '#f0fdf4',
+                color: '#15803d',
                 fontWeight: 600,
               }}
             />
@@ -455,7 +452,7 @@ export function ReviewForm() {
               left: 0,
               right: 0,
               height: '4px',
-              background: 'linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+              background: 'linear-gradient(90deg, #c7d2fe 0%, #ddd6fe 50%, #f0abfc 100%)',
             },
           }}
         >
@@ -478,7 +475,7 @@ export function ReviewForm() {
                     sx: {
                       '&:hover': {
                         '& fieldset': {
-                          borderColor: '#667eea !important',
+                          borderColor: '#a5b4fc !important',
                         },
                       },
                     },
@@ -486,7 +483,7 @@ export function ReviewForm() {
                 />
                 {prTitleLoading && (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
-                    <CircularProgress size={16} sx={{ color: '#667eea' }} />
+                    <CircularProgress size={16} sx={{ color: '#6366f1' }} />
                     <Typography variant="caption" color="text.secondary">
                       Fetching PR details...
                     </Typography>
@@ -499,11 +496,11 @@ export function ReviewForm() {
                         mt: 1,
                         p: 1.5,
                         borderRadius: '8px',
-                        background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%)',
-                        border: '1px solid rgba(102, 126, 234, 0.2)',
+                        background: 'rgba(99, 102, 241, 0.04)',
+                        border: '1px solid rgba(99, 102, 241, 0.15)',
                       }}
                     >
-                      <Typography variant="caption" sx={{ color: '#667eea', fontWeight: 600, display: 'block', mb: 0.5 }}>
+                      <Typography variant="caption" sx={{ color: '#6366f1', fontWeight: 600, display: 'block', mb: 0.5 }}>
                         Pull Request
                       </Typography>
                       <Typography variant="body2" sx={{ color: 'text.primary' }}>
@@ -519,8 +516,8 @@ export function ReviewForm() {
                         mt: 1,
                         p: 1.5,
                         borderRadius: '8px',
-                        background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(220, 38, 38, 0.05) 100%)',
-                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                        background: 'rgba(239, 68, 68, 0.04)',
+                        border: '1px solid rgba(239, 68, 68, 0.15)',
                       }}
                     >
                       <Typography variant="caption" sx={{ color: '#ef4444', fontWeight: 600, display: 'block', mb: 0.5 }}>
@@ -551,7 +548,7 @@ export function ReviewForm() {
                     sx: {
                       '&:hover': {
                         '& fieldset': {
-                          borderColor: '#667eea !important',
+                          borderColor: '#a5b4fc !important',
                         },
                       },
                     },
@@ -620,21 +617,11 @@ export function ReviewForm() {
                   startIcon={<RocketLaunchIcon />}
                   sx={{
                     py: 1.5,
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    '&::before': {
-                      content: '""',
-                      position: 'absolute',
-                      top: 0,
-                      left: '-100%',
-                      width: '100%',
-                      height: '100%',
-                      background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
-                      transition: 'left 0.5s',
-                    },
-                    '&:hover::before': {
-                      left: '100%',
+                    backgroundColor: '#6366f1',
+                    boxShadow: 'none',
+                    '&:hover': {
+                      backgroundColor: '#4f46e5',
+                      boxShadow: 'none',
                     },
                   }}
                 >
@@ -650,11 +637,11 @@ export function ReviewForm() {
                   startIcon={<RestartAltIcon />}
                   sx={{
                     py: 1.5,
-                    borderColor: '#667eea',
-                    color: '#667eea',
+                    borderColor: '#c7d2fe',
+                    color: '#6366f1',
                     '&:hover': {
-                      borderColor: '#764ba2',
-                      backgroundColor: 'rgba(102, 126, 234, 0.04)',
+                      borderColor: '#a5b4fc',
+                      backgroundColor: 'rgba(99, 102, 241, 0.04)',
                     },
                   }}
                 >
@@ -669,8 +656,8 @@ export function ReviewForm() {
               icon={<LockOutlinedIcon />}
               sx={{
                 mt: 4,
-                bgcolor: 'rgba(102, 126, 234, 0.05)',
-                border: '1px solid rgba(102, 126, 234, 0.1)',
+                bgcolor: 'rgba(99, 102, 241, 0.04)',
+                border: '1px solid rgba(99, 102, 241, 0.1)',
                 '& .MuiAlert-message': { width: '100%' }
               }}
             >
@@ -694,8 +681,8 @@ export function ReviewForm() {
                   sx={{
                     mt: 3,
                     borderRadius: '12px',
-                    background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%)',
-                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    background: 'rgba(16, 185, 129, 0.06)',
+                    border: '1px solid rgba(16, 185, 129, 0.2)',
                   }}
                 >
                   {successMessage}

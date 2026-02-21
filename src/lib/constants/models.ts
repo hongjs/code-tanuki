@@ -33,8 +33,8 @@ export const CLAUDE_MODELS: AIModel[] = [
 
 export const GEMINI_MODELS: AIModel[] = [
   {
-    id: 'gemini-3-pro-preview',
-    name: 'Gemini 3 Pro Preview',
+    id: 'gemini-3.1-pro-preview',
+    name: 'Gemini 3.1 Pro Preview',
     description: 'Most capable Gemini 3 model, best for complex reasoning tasks',
     maxTokens: 8192,
     provider: 'gemini',
