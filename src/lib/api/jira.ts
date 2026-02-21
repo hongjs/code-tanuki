@@ -367,6 +367,7 @@ export class JiraClient {
 
           const partial: Partial<LocalTicket> = {
             title: fields.summary,
+            type: fields.issuetype?.name as TicketType || 'Story',
             status: fields.status?.name,
             description,
             acceptanceCriteria,

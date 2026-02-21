@@ -6,7 +6,7 @@ export function getTypeChipSx(type: TicketType | string) {
     case 'Epic':     return { backgroundColor: '#ede9fe', color: '#5b21b6' };
     case 'Story':    return { backgroundColor: '#dcfce7', color: '#14532d' };
     case 'Task':     return { backgroundColor: '#dbeafe', color: '#1e3a8a' };
-    case 'Sub-task': return { backgroundColor: '#fce7f3', color: '#831843' };
+    case 'Sub-task': return { backgroundColor: '#e2e8f0', color: '#475569' };
     case 'Bug':      return { backgroundColor: '#fee2e2', color: '#7f1d1d' };
     default:         return { backgroundColor: '#f1f5f9', color: '#334155' };
   }

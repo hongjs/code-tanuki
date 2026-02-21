@@ -22,6 +22,11 @@ import {
   Alert,
   Snackbar,
   Link as MuiLink,
+  DialogTitle,
+  DialogContent,
+  TextField,
+  Dialog,
+  DialogActions,
 } from '@mui/material';
 import { DataGrid, GridColDef, GridRowSelectionModel } from '@mui/x-data-grid';
 import AssignmentIcon from '@mui/icons-material/Assignment';
@@ -63,6 +68,11 @@ export function TicketsManager() {
   // Detail dialog
   const [selectedTicket, setSelectedTicket] = useState<LocalTicket | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  // Sync New Ticket dialog
+  const [syncNewDialogOpen, setSyncNewDialogOpen] = useState(false);
+  const [syncNewJiraKey, setSyncNewJiraKey] = useState('');
+  const [syncNewLoading, setSyncNewLoading] = useState(false);
 
   // Action menu
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
@@ -235,6 +245,29 @@ export function TicketsManager() {
     }
   };
 
+  const handleSyncNewTicket = async () => {
+    if (!syncNewJiraKey.trim()) return;
+    setSyncNewLoading(true);
+    try {
+      const res = await fetch('/api/tickets/sync-new', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jiraKey: syncNewJiraKey.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to sync ticket');
+      
+      showSnackbar(`Ticket ${data.ticket.jiraKey} synced successfully`);
+      setSyncNewDialogOpen(false);
+      setSyncNewJiraKey('');
+      fetchTickets();
+    } catch (e: any) {
+      showSnackbar(e.message || 'Failed to sync new ticket', 'error');
+    } finally {
+      setSyncNewLoading(false);
+    }
+  };
+
   const columns: GridColDef<LocalTicket>[] = [
     {
       field: 'type',
@@ -258,20 +291,21 @@ export function TicketsManager() {
       width: 110,
       renderCell: (params) =>
         params.value ? (
-          jiraBaseUrl ? (
-            <MuiLink
-              href={`${jiraBaseUrl}/browse/${params.value}`}
-              target="_blank"
-              rel="noopener"
-              sx={{ fontWeight: 600, color: '#6366f1', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
-            >
-              {params.value}
-            </MuiLink>
-          ) : (
-            <Typography variant="body2" sx={{ fontWeight: 600, color: '#6366f1' }}>
-              {params.value}
-            </Typography>
-          )
+          <Typography
+            variant="body2"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenDialog(params.row);
+            }}
+            sx={{
+              fontWeight: 600,
+              color: '#6366f1',
+              cursor: 'pointer',
+              '&:hover': { textDecoration: 'underline' },
+            }}
+          >
+            {params.value}
+          </Typography>
         ) : (
           <Typography variant="body2" color="text.disabled">
             —
@@ -522,39 +556,68 @@ export function TicketsManager() {
                 </ToggleButton>
               </ToggleButtonGroup>
 
-              {/* Bulk Actions */}
-              {selectedCount > 0 && (
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                  <Chip
-                    label={`${selectedCount} selected`}
-                    size="small"
-                    sx={{ fontWeight: 600 }}
-                  />
-                  <Tooltip title="Create selected tickets on Jira (skips already created)">
-                    <span>
-                      <Button
-                        size="small"
-                        variant="contained"
-                        startIcon={
-                          bulkLoading === 'create' ? (
-                            <CircularProgress size={14} color="inherit" />
-                          ) : (
-                            <CloudUploadIcon />
-                          )
-                        }
-                        disabled={!!bulkLoading}
-                        onClick={() => handleBulkAction('create')}
-                        sx={{
-                          backgroundColor: '#dcfce7',
-                          color: '#14532d',
-                          boxShadow: 'none',
-                          textTransform: 'none',
-                          fontWeight: 600,
-                          borderRadius: '8px',
-                          '&:hover': { backgroundColor: '#bbf7d0', boxShadow: 'none' },
-                        }}
-                      >
-                        Create {selectedCount} on Jira
+              {/* Bulk Actions & New Sync */}
+              <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                <Button
+                  variant="outlined"
+                  startIcon={<SyncIcon />}
+                  onClick={() => setSyncNewDialogOpen(true)}
+                  size="small"
+                  sx={{
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    borderRadius: '8px',
+                    borderColor: '#c7d2fe',
+                    color: '#4f46e5',
+                    '&:hover': { backgroundColor: '#eef2ff', borderColor: '#a5b4fc' },
+                  }}
+                >
+                  Sync New Ticket
+                </Button>
+
+                {selectedCount > 0 && (
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', ml: 1, pl: 2, borderLeft: '1px solid #e2e8f0' }}>
+                    <Chip
+                      label={`${selectedCount} selected`}
+                      size="small"
+                      sx={{ fontWeight: 600 }}
+                    />
+                    <Tooltip title={
+                      selectedIds.every(id => tickets.find(t => t.localId === id)?.jiraKey)
+                        ? "All selected tickets are already created on Jira"
+                        : "Create selected tickets on Jira (skips already created)"
+                    }>
+                      <span>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          startIcon={
+                            bulkLoading === 'create' ? (
+                              <CircularProgress size={14} color="inherit" />
+                            ) : (
+                              <CloudUploadIcon />
+                            )
+                          }
+                          disabled={
+                            !!bulkLoading ||
+                            selectedIds.every(id => tickets.find(t => t.localId === id)?.jiraKey)
+                          }
+                          onClick={() => handleBulkAction('create')}
+                          sx={{
+                            backgroundColor: '#dcfce7',
+                            color: '#14532d',
+                            boxShadow: 'none',
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            borderRadius: '8px',
+                            '&:hover': { backgroundColor: '#bbf7d0', boxShadow: 'none' },
+                            '&.Mui-disabled': {
+                              backgroundColor: '#f1f5f9',
+                              color: '#94a3b8'
+                            }
+                          }}
+                        >
+                          Create {selectedCount} on Jira
                       </Button>
                     </span>
                   </Tooltip>
@@ -583,8 +646,9 @@ export function TicketsManager() {
                 </Box>
               )}
             </Box>
+          </Box>
 
-            {/* Views */}
+          {/* Views */}
             {viewMode === 'list' && (
               <Box sx={{ height: 600, width: '100%' }}>
                 <DataGrid
@@ -686,6 +750,42 @@ export function TicketsManager() {
           <ListItemText>Delete</ListItemText>
         </MenuItem>
       </Menu>
+
+      {/* Sync New Ticket Dialog */}
+      <Dialog open={syncNewDialogOpen} onClose={() => setSyncNewDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Sync from Jira</DialogTitle>
+        <DialogContent sx={{ pt: '16px !important' }}>
+          <TextField
+            label="Jira Issue Key"
+            placeholder="e.g. SCRUM-123"
+            fullWidth
+            value={syncNewJiraKey}
+            onChange={(e) => setSyncNewJiraKey(e.target.value)}
+            disabled={syncNewLoading}
+            autoFocus
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setSyncNewDialogOpen(false)} disabled={syncNewLoading} sx={{ textTransform: 'none', fontWeight: 600 }}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSyncNewTicket}
+            disabled={!syncNewJiraKey.trim() || syncNewLoading}
+            startIcon={syncNewLoading ? <CircularProgress size={16} color="inherit" /> : <SyncIcon />}
+            sx={{
+              backgroundColor: '#6366f1',
+              textTransform: 'none',
+              fontWeight: 600,
+              boxShadow: 'none',
+              '&:hover': { backgroundColor: '#4f46e5', boxShadow: 'none' },
+            }}
+          >
+            Sync Ticket
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Detail / Edit Dialog */}
       <TicketDetailDialog
