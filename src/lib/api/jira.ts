@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { JiraAttachment, JiraTicket } from '@/types/jira';
+import { LocalTicket } from '@/types/ticket';
 import { JiraAPIError } from '@/types/errors';
 import { logger } from '../logger/winston';
 import { withRetry } from '../utils/retry';
@@ -171,6 +172,181 @@ export class JiraClient {
         maxDelayMs: parseInt(process.env.RETRY_MAX_DELAY_MS || '10000'),
       }
     );
+  }
+
+  async createIssue(
+    ticket: LocalTicket,
+    projectKey: string,
+    storyPointsField: string = 'customfield_10016'
+  ): Promise<{ key: string; id: string }> {
+    return withRetry(
+      async () => {
+        try {
+          logger.info('Creating Jira issue', { title: ticket.title, type: ticket.type });
+
+          const fields: Record<string, unknown> = {
+            project: { key: projectKey },
+            summary: ticket.title,
+            issuetype: { name: ticket.type },
+          };
+
+          if (ticket.description) {
+            fields.description = this.textToADF(ticket.description);
+          }
+
+          if (ticket.priority) {
+            fields.priority = { name: ticket.priority };
+          }
+
+          if (ticket.parentKey) {
+            fields.parent = { key: ticket.parentKey };
+          }
+
+          if (ticket.storyPoints !== undefined) {
+            fields[storyPointsField] = ticket.storyPoints;
+          }
+
+          if (ticket.labels && ticket.labels.length > 0) {
+            fields.labels = ticket.labels;
+          }
+
+          const response = await this.client.post('/rest/api/3/issue', { fields });
+          const { key, id } = response.data;
+
+          logger.info('Successfully created Jira issue', { key, localId: ticket.localId });
+          return { key, id };
+        } catch (error: unknown) {
+          if (axios.isAxiosError(error)) {
+            const message =
+              error.response?.data?.errors
+                ? JSON.stringify(error.response.data.errors)
+                : error.response?.data?.errorMessages?.join(', ') || error.message;
+            logger.error('Failed to create Jira issue', { error: message, status: error.response?.status });
+            throw new JiraAPIError(`Failed to create issue: ${message}`, { ticket: ticket.title });
+          }
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          throw new JiraAPIError(`Failed to create issue: ${message}`, { ticket: ticket.title });
+        }
+      },
+      {
+        maxAttempts: parseInt(process.env.RETRY_MAX_ATTEMPTS || '3'),
+        baseDelayMs: parseInt(process.env.RETRY_BASE_DELAY_MS || '1000'),
+        maxDelayMs: parseInt(process.env.RETRY_MAX_DELAY_MS || '10000'),
+      }
+    );
+  }
+
+  async updateIssue(
+    jiraKey: string,
+    ticket: Partial<LocalTicket>,
+    storyPointsField: string = 'customfield_10016'
+  ): Promise<void> {
+    return withRetry(
+      async () => {
+        try {
+          logger.info('Updating Jira issue', { jiraKey });
+
+          const fields: Record<string, unknown> = {};
+
+          if (ticket.title !== undefined) {
+            fields.summary = ticket.title;
+          }
+
+          if (ticket.description !== undefined) {
+            fields.description = this.textToADF(ticket.description);
+          }
+
+          if (ticket.priority !== undefined) {
+            fields.priority = { name: ticket.priority };
+          }
+
+          if (ticket.storyPoints !== undefined) {
+            fields[storyPointsField] = ticket.storyPoints;
+          }
+
+          if (ticket.labels !== undefined) {
+            fields.labels = ticket.labels;
+          }
+
+          await this.client.put(`/rest/api/3/issue/${jiraKey}`, { fields });
+          logger.info('Successfully updated Jira issue', { jiraKey });
+        } catch (error: unknown) {
+          if (axios.isAxiosError(error)) {
+            const message =
+              error.response?.data?.errors
+                ? JSON.stringify(error.response.data.errors)
+                : error.response?.data?.errorMessages?.join(', ') || error.message;
+            logger.error('Failed to update Jira issue', { jiraKey, error: message });
+            throw new JiraAPIError(`Failed to update issue: ${message}`, { jiraKey });
+          }
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          throw new JiraAPIError(`Failed to update issue: ${message}`, { jiraKey });
+        }
+      },
+      {
+        maxAttempts: parseInt(process.env.RETRY_MAX_ATTEMPTS || '3'),
+        baseDelayMs: parseInt(process.env.RETRY_BASE_DELAY_MS || '1000'),
+        maxDelayMs: parseInt(process.env.RETRY_MAX_DELAY_MS || '10000'),
+      }
+    );
+  }
+
+  async fetchFullIssue(jiraKey: string, storyPointsField: string = 'customfield_10016'): Promise<Partial<LocalTicket>> {
+    return withRetry(
+      async () => {
+        try {
+          logger.info('Fetching full Jira issue for sync', { jiraKey });
+
+          const response = await this.client.get(`/rest/api/3/issue/${jiraKey}`);
+          const { data } = response;
+          const fields = data.fields;
+
+          const partial: Partial<LocalTicket> = {
+            title: fields.summary,
+            status: fields.status?.name,
+            description: this.extractPlainText(fields.description),
+            priority: fields.priority?.name,
+            assignee: fields.assignee?.displayName,
+            storyPoints: fields[storyPointsField] ?? undefined,
+            syncedAt: new Date().toISOString(),
+          };
+
+          if (fields.parent?.key) {
+            partial.parentKey = fields.parent.key;
+          }
+
+          logger.info('Successfully fetched Jira issue for sync', { jiraKey });
+          return partial;
+        } catch (error: unknown) {
+          if (axios.isAxiosError(error)) {
+            const message = error.response?.data?.errorMessages?.join(', ') || error.message;
+            logger.error('Failed to fetch full Jira issue', { jiraKey, error: message });
+            throw new JiraAPIError(`Failed to fetch issue: ${message}`, { jiraKey });
+          }
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          throw new JiraAPIError(`Failed to fetch issue: ${message}`, { jiraKey });
+        }
+      },
+      {
+        maxAttempts: parseInt(process.env.RETRY_MAX_ATTEMPTS || '3'),
+        baseDelayMs: parseInt(process.env.RETRY_BASE_DELAY_MS || '1000'),
+        maxDelayMs: parseInt(process.env.RETRY_MAX_DELAY_MS || '10000'),
+      }
+    );
+  }
+
+  private textToADF(text: string): object {
+    const paragraphs = text.split('\n\n').map((para) => ({
+      type: 'paragraph',
+      content: para
+        ? [{ type: 'text', text: para }]
+        : [],
+    }));
+    return {
+      type: 'doc',
+      version: 1,
+      content: paragraphs,
+    };
   }
 
   private extractPlainText(description: {
