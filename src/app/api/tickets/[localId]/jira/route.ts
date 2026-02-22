@@ -77,8 +77,16 @@ export async function PATCH(_request: NextRequest, { params }: RouteParams) {
     const jiraClient = getJiraClient();
     await jiraClient.updateIssue(ticket.jiraKey, ticket, env.JIRA_STORY_POINTS_FIELD);
 
+    const now = new Date().toISOString();
+    const updated = {
+      ...ticket,
+      syncedAt: now,
+      updatedAt: now,
+    };
+    await ticketStorage.save(updated);
+
     logger.info('Updated ticket on Jira', { localId, jiraKey: ticket.jiraKey });
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, ticket: updated });
   } catch (error) {
     logger.error('Failed to update ticket on Jira', { error });
     const message = error instanceof Error ? error.message : 'Unknown error';

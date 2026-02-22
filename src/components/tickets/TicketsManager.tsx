@@ -40,6 +40,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import SyncIcon from '@mui/icons-material/Sync';
 import CloudOffIcon from '@mui/icons-material/CloudOff';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { format } from 'date-fns';
 import { LocalTicket, TicketType } from '@/types/ticket';
 import { TicketFilters } from './TicketFilters';
@@ -191,8 +192,12 @@ export function TicketsManager() {
     const res = await fetch(`/api/tickets/${localId}/jira`, { method: 'POST' });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to create on Jira');
-    setTickets((prev) => prev.map((t) => (t.localId === localId ? data.ticket : t)));
-    if (selectedTicket?.localId === localId) setSelectedTicket(data.ticket);
+    await fetchTickets();
+    if (selectedTicket?.localId === localId) {
+      const updatedList = await fetch('/api/tickets').then(r => r.json());
+      const updatedItem = updatedList.tickets.find((t: LocalTicket) => t.localId === localId);
+      if (updatedItem) setSelectedTicket(updatedItem);
+    }
     showSnackbar(`Created on Jira: ${data.jiraKey}`);
   };
 
@@ -202,6 +207,12 @@ export function TicketsManager() {
       const data = await res.json();
       throw new Error(data.error || 'Failed to update on Jira');
     }
+    await fetchTickets();
+    if (selectedTicket?.localId === localId) {
+      const updatedList = await fetch('/api/tickets').then(r => r.json());
+      const updatedItem = updatedList.tickets.find((t: LocalTicket) => t.localId === localId);
+      if (updatedItem) setSelectedTicket(updatedItem);
+    }
     showSnackbar('Updated on Jira');
   };
 
@@ -209,8 +220,12 @@ export function TicketsManager() {
     const res = await fetch(`/api/tickets/${localId}/jira`, { method: 'GET' });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to sync');
-    setTickets((prev) => prev.map((t) => (t.localId === localId ? data.ticket : t)));
-    if (selectedTicket?.localId === localId) setSelectedTicket(data.ticket);
+    await fetchTickets();
+    if (selectedTicket?.localId === localId) {
+      const updatedList = await fetch('/api/tickets').then(r => r.json());
+      const updatedItem = updatedList.tickets.find((t: LocalTicket) => t.localId === localId);
+      if (updatedItem) setSelectedTicket(updatedItem);
+    }
     showSnackbar('Synced from Jira');
   };
 
@@ -572,6 +587,12 @@ export function TicketsManager() {
 
               {/* Bulk Actions & New Sync */}
               <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                <Tooltip title="Refresh tickets from local files">
+                  <IconButton onClick={fetchTickets} size="small" color="primary">
+                    <RefreshIcon />
+                  </IconButton>
+                </Tooltip>
+
                 <Button
                   variant="outlined"
                   startIcon={<SyncIcon />}
