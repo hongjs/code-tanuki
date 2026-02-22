@@ -39,6 +39,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import SyncIcon from '@mui/icons-material/Sync';
+import CloudOffIcon from '@mui/icons-material/CloudOff';
 import { format } from 'date-fns';
 import { LocalTicket, TicketType } from '@/types/ticket';
 import { TicketFilters } from './TicketFilters';
@@ -46,6 +47,12 @@ import { TicketDetailDialog } from './TicketDetailDialog';
 import { EpicGroupView } from './EpicGroupView';
 import { StoryView } from './StoryView';
 import { getTypeChipSx, getStatusChipSx } from './ticketColors';
+
+function isTicketUnsynced(ticket: LocalTicket) {
+  if (!ticket.jiraKey) return true;
+  if (!ticket.syncedAt) return true;
+  return new Date(ticket.updatedAt).getTime() > new Date(ticket.syncedAt).getTime();
+}
 
 type ViewMode = 'list' | 'epic' | 'story';
 
@@ -339,15 +346,22 @@ export function TicketsManager() {
       headerName: 'Status',
       width: 110,
       renderCell: (params) => (
-        <Chip
-          label={params.value}
-          size="small"
-          sx={{
-            ...getStatusChipSx(params.value),
-            fontWeight: 600,
-            fontSize: '0.95rem',
-          }}
-        />
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Chip
+            label={params.value}
+            size="small"
+            sx={{
+              ...getStatusChipSx(params.value),
+              fontWeight: 600,
+              fontSize: '0.95rem',
+            }}
+          />
+          {isTicketUnsynced(params.row) && (
+            <Tooltip title="Local changes not synced to Jira">
+              <CloudOffIcon sx={{ fontSize: 18, color: '#f59e0b', ml: 0.5 }} />
+            </Tooltip>
+          )}
+        </Box>
       ),
     },
     {

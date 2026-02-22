@@ -1,7 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { MarkdownTransformer } from '@atlaskit/editor-markdown-transformer';
 import { JiraAttachment, JiraTicket } from '@/types/jira';
-import { LocalTicket } from '@/types/ticket';
+import { LocalTicket, TicketType } from '@/types/ticket';
 import { JiraAPIError } from '@/types/errors';
 import { logger } from '../logger/winston';
 import { withRetry } from '../utils/retry';
@@ -516,8 +516,9 @@ export class JiraClient {
         if (['table', 'tableRow', 'tableHeader', 'tableCell'].includes(node.type)) {
           // Keep only standard basic attrs for cells, ignore the rest
           const safeAttrs: any = {};
-          if (value.colspan !== undefined && value.colspan !== null) safeAttrs.colspan = value.colspan;
-          if (value.rowspan !== undefined && value.rowspan !== null) safeAttrs.rowspan = value.rowspan;
+          const v = value as any;
+          if (v.colspan !== undefined && v.colspan !== null) safeAttrs.colspan = v.colspan;
+          if (v.rowspan !== undefined && v.rowspan !== null) safeAttrs.rowspan = v.rowspan;
           if (Object.keys(safeAttrs).length > 0) {
             cleaned.attrs = safeAttrs;
           }
