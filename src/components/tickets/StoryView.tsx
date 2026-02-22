@@ -17,8 +17,15 @@ import {
 import EditIcon from '@mui/icons-material/Edit';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import SubdirectoryArrowRightIcon from '@mui/icons-material/SubdirectoryArrowRight';
+import CloudOffIcon from '@mui/icons-material/CloudOff';
 import { LocalTicket } from '@/types/ticket';
 import { getTypeChipSx, getStatusChipSx } from './ticketColors';
+
+function isTicketUnsynced(ticket: LocalTicket) {
+  if (!ticket.jiraKey) return true;
+  if (!ticket.syncedAt) return true;
+  return new Date(ticket.updatedAt).getTime() > new Date(ticket.syncedAt).getTime();
+}
 
 interface StoryViewProps {
   tickets: LocalTicket[];
@@ -112,6 +119,11 @@ export function StoryView({ tickets, jiraBaseUrl, onTicketClick }: StoryViewProp
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#94a3b8' }}>
                   No Epic
                 </Typography>
+              )}
+              {epic && isTicketUnsynced(epic) && (
+                <Tooltip title="Local changes not synced to Jira">
+                  <CloudOffIcon sx={{ fontSize: 18, color: '#f59e0b', ml: 0.5 }} />
+                </Tooltip>
               )}
               <Box sx={{ flex: 1, height: '1px', background: '#e9d5ff', ml: 1 }} />
               <Typography variant="caption" sx={{ color: '#a5b4fc', fontWeight: 600, flexShrink: 0 }}>
@@ -215,6 +227,11 @@ function StoryCard({ story, subtasks, jiraBaseUrl, onTicketClick }: StoryCardPro
               size="small"
               sx={{ ...getStatusChipSx(story.status), fontWeight: 600, fontSize: '1rem' }}
             />
+            {isTicketUnsynced(story) && (
+              <Tooltip title="Local changes not synced to Jira">
+                <CloudOffIcon sx={{ fontSize: 18, color: '#f59e0b', ml: 0.5 }} />
+              </Tooltip>
+            )}
             <Tooltip title="Edit">
               <IconButton
                 size="small"
@@ -258,11 +275,18 @@ function StoryCard({ story, subtasks, jiraBaseUrl, onTicketClick }: StoryCardPro
                     disableGutters
                     sx={{ py: 0.25 }}
                     secondaryAction={
-                      <Chip
-                        label={sub.status}
-                        size="small"
-                        sx={{ ...getStatusChipSx(sub.status), fontWeight: 600, fontSize: '0.9rem' }}
-                      />
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Chip
+                          label={sub.status}
+                          size="small"
+                          sx={{ ...getStatusChipSx(sub.status), fontWeight: 600, fontSize: '0.9rem' }}
+                        />
+                        {isTicketUnsynced(sub) && (
+                          <Tooltip title="Local changes not synced to Jira">
+                            <CloudOffIcon sx={{ fontSize: 16, color: '#f59e0b', ml: 1 }} />
+                          </Tooltip>
+                        )}
+                      </Box>
                     }
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mr: 10 }}>
