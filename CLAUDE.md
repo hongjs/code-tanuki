@@ -44,6 +44,8 @@ src/
 │   │   └── page.tsx            # Main review form
 │   ├── history/                 # History page
 │   │   └── page.tsx            # Review history table
+│   ├── tickets/                 # Ticket Management page
+│   │   └── page.tsx            # Epic/Story/List views for local Jira tickets
 │   └── api/                     # API Routes (serverless functions)
 │       ├── review/
 │       │   ├── route.ts        # Main orchestrator (preview mode)
@@ -54,6 +56,9 @@ src/
 │       ├── jira/
 │       │   ├── ticket/route.ts # Fetch Jira ticket
 │       │   └── comment/route.ts # Post Jira comment
+│       ├── tickets/            # Local Ticket sync API
+│       │   ├── bulk-jira/route.ts  # Bulk Jira sync actions
+│       │   └── [localId]/jira/route.ts # Single ticket Jira sync
 │       ├── history/route.ts    # Get review history
 │       └── health/route.ts     # Health check endpoint
 │
@@ -68,6 +73,10 @@ src/
 │   └── history/
 │       ├── HistoryTable.tsx    # MUI DataGrid table
 │       └── HistoryFilters.tsx  # Filter controls
+│   └── tickets/
+│       ├── TicketsManager.tsx  # Main ticket collection UI
+│       ├── EpicGroupView.tsx   # Hierarchical epic display
+│       └── StoryView.tsx       # Detailed board style display
 │
 ├── lib/                          # Business Logic Layer
 │   ├── api/                     # External API Clients
@@ -265,6 +274,15 @@ const apiKey = env.ANTHROPIC_API_KEY; // Type-safe!
    - Map from Jira API response
 
 3. **Update prompt**: Include custom field in `prompts.ts`
+
+### Jira Ticket Standards & Formatting (Local Data)
+
+When manually creating or generating mock JSON tickets for the UI (stored in `/data/jira-tickets/`), you must strictly adhere to:
+
+1. **Dual-File Requirement**: Updates must be synchronized across:
+   - `data/jira-tickets/tickets.json` (Summary list)
+   - `data/jira-tickets/data/{localId}/item.json` (Detailed payload)
+2. **UUIDv7 Standard**: The `localId` property **MUST ALWAYS** be generated using the UUIDv7 specification. This includes a time-based prefix ensuring tickets are natively sorted chronologically. Do not use random UUIDv4.
 
 ### Migrating to a Database
 

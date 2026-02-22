@@ -19,7 +19,8 @@ Code-Tanuki is an AI-powered code review tool designed for development teams. It
 
 - **🤖 Multi-AI Support** - Choose between Claude AI (Opus, Sonnet, Haiku) or Google Gemini (3 Pro, 3 Flash)
 - **🔗 GitHub Integration** - Automatic PR fetching and inline comment posting
-- **📋 Jira Integration** - Validate code against acceptance criteria (optional)
+- **📋 Jira Requirements Validation** - Validate code against acceptance criteria
+- **🎫 Local Ticket Management** - Manage Jira tickets locally with Epic/Story views, offline status tracking, and 2-way Jira syncing (`Create/Update/Sync`)
 - **✨ Beautiful UI** - Modern, colorful interface with smooth animations
 - **📊 Review History** - Track all reviews with filtering and search capabilities
 - **🐳 Docker Ready** - Easy deployment with Docker Compose
@@ -187,6 +188,18 @@ fix(PROJ-567): Fix login bug → Extracts PROJ-567
 
 Supported prefixes: `feat`, `fix`, `chore`, `docs`, `style`, `refactor`, `test`, `build`, `ci`, `perf`
 
+### Local Ticket Management & Jira Sync
+
+Navigate to the **Tickets** page to access the local Jira ticket manager:
+
+- **Local Storage**: Tickets are stored locally in JSON format (`data/jira-tickets`).
+- **Offline Tracking**: Tickets edited locally are marked with an \"Offline\" indicator (☁️🚫) until synced back to Jira.
+- **Two-Way Syncing**:
+  - **Sync from Jira**: Pull the latest status, description, and story points from remote.
+  - **Create to Jira**: Publish a local draft ticket to your Jira backlog.
+  - **Update on Jira**: Push local edits back to an existing remote Jira ticket.
+- **Visual Grouping**: Toggle between standard `List View`, hierarchical `Epic View`, and detailed `Story View`.
+
 ### Viewing History
 
 Navigate to the **History** page to:
@@ -204,15 +217,18 @@ code-tanuki/
 │   ├── app/                      # Next.js App Router
 │   │   ├── review/              # Review page
 │   │   ├── history/             # History page
+│   │   ├── tickets/             # Ticket Management page
 │   │   ├── layout.tsx           # Root layout with sidebar
 │   │   └── api/                 # API Routes
 │   │       ├── review/          # Main orchestrator
 │   │       ├── github/          # GitHub endpoints
 │   │       ├── jira/            # Jira endpoints
+│   │       ├── tickets/         # Local Ticket sync endpoints
 │   │       └── health/          # Health check
 │   ├── components/              # React Components
 │   │   ├── review/             # Review form & progress
 │   │   ├── history/            # History table & filters
+│   │   ├── tickets/            # Local ticket UI components
 │   │   └── layout/             # Sidebar navigation
 │   ├── lib/                    # Business Logic
 │   │   ├── api/                # API clients (GitHub, Jira, Claude)
