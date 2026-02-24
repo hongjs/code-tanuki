@@ -12,7 +12,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "docker:build": "docker build -t code-tanuki:latest .",
-    "docker:run": "docker run -p 8082:3000 -d --name code-tanuki --env-file .env.local -v ./data/prod:/data -v ./logs/prod:/logs code-tanuki:latest",
+    "docker:run": "docker run -p 8082:3000 -d --name code-tanuki --env-file .env.local -v ./data:/data -v ./logs:/logs code-tanuki:latest",
     "docker:compose:up": "docker compose up -d"
   },
   "dependencies": {

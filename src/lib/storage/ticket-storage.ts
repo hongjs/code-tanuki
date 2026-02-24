@@ -1,10 +1,11 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { randomUUID } from 'crypto';
+import { v7 as uuidv7 } from 'uuid';
 import { LocalTicket, TicketFilters, TicketIndexEntry, TicketType } from '@/types/ticket';
 import { logger } from '../logger/winston';
+import { env } from '../utils/env';
 
-const BASE_DIR = 'data/jira-tickets';
+const BASE_DIR = env.TICKET_DATA_DIR || 'data/jira-tickets';
 const INDEX_FILE = `${BASE_DIR}/tickets.json`;
 const DATA_DIR = `${BASE_DIR}/data`;
 
@@ -38,7 +39,7 @@ function migrateEntry(raw: Record<string, unknown>): LocalTicket {
   const now = new Date().toISOString();
 
   return {
-    localId: randomUUID(),
+    localId: uuidv7(),
     jiraKey,
     title: (raw.title as string) || '',
     description: (raw.objective as string) || undefined,

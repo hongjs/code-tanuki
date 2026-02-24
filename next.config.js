@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  output: 'standalone',
   experimental: {},
   env: {
     NEXT_PUBLIC_APP_NAME: 'Code-Tanuki',

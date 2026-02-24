@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { randomUUID } from 'crypto';
+import { v7 as uuidv7 } from 'uuid';
 import { z } from 'zod';
 import { ticketStorage } from '@/lib/storage/ticket-storage';
 import { logger } from '@/lib/logger/winston';
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     const now = new Date().toISOString();
     const ticket: LocalTicket = {
-      localId: randomUUID(),
+      localId: uuidv7(),
       ...data,
       createdAt: now,
       updatedAt: now,

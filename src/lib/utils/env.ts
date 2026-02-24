@@ -43,6 +43,7 @@ const envSchema = z.object({
 
   STORAGE_TYPE: z.enum(['json']).default('json'),
   DATA_DIR: z.string().default('./data/reviews'),
+  TICKET_DATA_DIR: z.string().default('./data/jira-tickets'),
 
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
   LOG_DIR: z.string().default('./logs'),
