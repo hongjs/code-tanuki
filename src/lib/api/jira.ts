@@ -351,12 +351,24 @@ export class JiraClient {
           ]);
 
           const attachments: JiraAttachment[] = (fields.attachment ?? [])
+            .filter((a: any) => a.mimeType?.startsWith('image/'))
             .map((a: any) => ({
               id: a.id,
               filename: a.filename,
               mimeType: a.mimeType,
               content: a.content,
             }));
+
+          // Fetch comments
+          const commentsCount = fields.comment?.total || 0;
+          let comments = undefined;
+          if (commentsCount > 0) {
+            try {
+              comments = await this.fetchComments(jiraKey);
+            } catch (err) {
+              logger.warn('Failed to fetch comments for issue during full sync', { jiraKey, error: err });
+            }
+          }
 
           // Strip the Acceptance Criteria section from the main description
           // so it doesn't duplicate in the UI (since ticket.description and ticket.acceptanceCriteria are rendered separately)
@@ -376,6 +388,7 @@ export class JiraClient {
             storyPoints: fields[storyPointsField] ?? undefined,
             parentKey,
             attachments: attachments.length > 0 ? attachments : undefined,
+            comments,
             syncedAt: new Date().toISOString(),
           };
 
@@ -397,6 +410,78 @@ export class JiraClient {
         maxDelayMs: parseInt(process.env.RETRY_MAX_DELAY_MS || '10000'),
       }
     );
+  }
+
+  async fetchComments(jiraKey: string): Promise<any[]> {
+    return withRetry(
+      async () => {
+        try {
+          const response = await this.client.get(`/rest/api/3/issue/${jiraKey}/comment`);
+          const comments = response.data.comments || [];
+          return comments.map((c: any) => ({
+            id: c.id,
+            author: c.author?.displayName || 'Unknown',
+            body: this.adfToMarkdown(c.body),
+            created: c.created,
+            updated: c.updated,
+          }));
+        } catch (error: unknown) {
+          logger.error('Failed to fetch comments', { jiraKey, error });
+          return []; // Fail gracefully, don't crash the sync
+        }
+      },
+      { maxAttempts: 2, baseDelayMs: 1000, maxDelayMs: 3000 }
+    );
+  }
+
+  async downloadAttachment(contentUrl: string): Promise<Buffer> {
+    return withRetry(
+      async () => {
+        try {
+          const response = await this.client.get(contentUrl, { responseType: 'arraybuffer' });
+          return Buffer.from(response.data);
+        } catch (error: unknown) {
+          logger.error('Failed to download attachment', { url: contentUrl, error });
+          throw new JiraAPIError(`Failed to download attachment`, { url: contentUrl });
+        }
+      },
+      { maxAttempts: 3, baseDelayMs: 1000, maxDelayMs: 5000 }
+    );
+  }
+
+  async syncTicketAttachments(ticket: Partial<LocalTicket>, attachmentsDir: string): Promise<void> {
+    if (!ticket.attachments || ticket.attachments.length === 0 || !ticket.localId) {
+      return;
+    }
+    
+    try {
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      
+      for (const attachment of ticket.attachments) {
+        if (!attachment.content) continue;
+        
+        const filePath = path.join(attachmentsDir, attachment.filename);
+        try {
+          // Check if already exists to avoid re-downloading
+          await fs.access(filePath);
+          continue;
+        } catch {
+          // File does not exist, proceed to download
+        }
+
+        try {
+          logger.info(`Downloading attachment ${attachment.filename} for ticket ${ticket.jiraKey}`);
+          const buffer = await this.downloadAttachment(attachment.content);
+          await fs.writeFile(filePath, buffer);
+          logger.info(`Saved attachment ${attachment.filename} to ${filePath}`);
+        } catch (err) {
+          logger.error(`Failed to process attachment ${attachment.filename}`, { error: err });
+        }
+      }
+    } catch (error) {
+      logger.error('Failed during ticket attachment sync', { error });
+    }
   }
 
   /**

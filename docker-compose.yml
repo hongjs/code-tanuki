@@ -9,6 +9,9 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - DATA_DIR=/data/reviews
+      - TICKET_DATA_DIR=/data/jira-tickets
+      - LOG_DIR=/logs
     env_file:
       - .env.local
     volumes:

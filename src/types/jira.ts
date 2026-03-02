@@ -5,6 +5,14 @@ export interface JiraAttachment {
   content: string; // download URL from Jira API
 }
 
+export interface JiraComment {
+  id: string;
+  author: string;
+  body: string;
+  created: string;
+  updated: string;
+}
+
 export interface JiraTicket {
   key: string;
   summary: string;
@@ -18,6 +26,7 @@ export interface JiraTicket {
     emailAddress: string;
   };
   attachments?: JiraAttachment[];
+  comments?: JiraComment[];
 }
 
 export interface JiraCommentRequest {

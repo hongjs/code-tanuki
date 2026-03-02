@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { JiraClient } from '@/lib/api/jira';
 import { ticketStorage } from '@/lib/storage/ticket-storage';
 import { env } from '@/lib/utils/env';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { LocalTicket, TicketType } from '@/types/ticket';
 
 export async function POST(request: NextRequest) {
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     const newTicket: LocalTicket = {
-      localId: uuidv4(),
+      localId: uuidv7(),
       jiraKey: jiraKey,
       title: issueData.title,
       description: issueData.description,
@@ -46,6 +46,10 @@ export async function POST(request: NextRequest) {
     };
 
     await ticketStorage.save(newTicket);
+    
+    // Download attachments
+    const attachmentsDir = await ticketStorage.getAttachmentsDir(newTicket.localId);
+    await client.syncTicketAttachments(newTicket, attachmentsDir);
 
     return NextResponse.json({ ticket: newTicket }, { status: 201 });
   } catch (error: any) {

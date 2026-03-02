@@ -122,6 +122,9 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       updatedAt: new Date().toISOString(),
     };
     await ticketStorage.save(updated);
+    
+    // Sync attachments
+    await jiraClient.syncTicketAttachments(updated, await ticketStorage.getAttachmentsDir(localId));
 
     logger.info('Synced ticket from Jira', { localId, jiraKey: ticket.jiraKey });
     return NextResponse.json({ ticket: updated });

@@ -1,4 +1,4 @@
-import { JiraAttachment } from './jira';
+import { JiraAttachment, JiraComment } from './jira';
 
 export type TicketType = 'Epic' | 'Story' | 'Task' | 'Sub-task' | 'Bug';
 export type TicketStatus = 'To Do' | 'In Progress' | 'Done';
@@ -19,6 +19,7 @@ export interface LocalTicket {
   labels?: string[];
   acceptanceCriteria?: string;
   attachments?: JiraAttachment[];
+  comments?: JiraComment[];
   createdAt: string;        // ISO - when added locally
   updatedAt: string;        // ISO - when last edited locally
   syncedAt?: string;        // ISO - when last synced from Jira
