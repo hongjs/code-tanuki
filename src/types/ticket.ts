@@ -6,7 +6,7 @@ export type TicketPriority = 'Highest' | 'High' | 'Medium' | 'Low' | 'Lowest';
 
 export interface LocalTicket {
   localId: string;          // UUID - local identifier (always present)
-  jiraKey?: string;         // "BYD-1666" - present if created on Jira
+  jiraKey?: string;         // "ABC-1666" - present if created on Jira
   title: string;
   description?: string;
   type: TicketType;

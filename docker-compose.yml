@@ -10,13 +10,14 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - DATA_DIR=/data/reviews
+      - REVIEW_V2_DATA_DIR=/data/reviews-v2
       - TICKET_DATA_DIR=/data/jira-tickets
       - LOG_DIR=/logs
     env_file:
       - .env.local
     volumes:
-      - ~/Git/Hong/code-tanuki/data/prod:/data
-      - ~/Git/Hong/code-tanuki/logs/prod:/logs
+      - ./data:/data
+      - ./logs:/logs
     restart: unless-stopped
     healthcheck:
       test:

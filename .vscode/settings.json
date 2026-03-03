@@ -1,0 +1,13 @@
+{
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.next": true,
+    "tmp-repos": true,
+    ".next": true
+  },
+  "files.exclude": {
+    "**/tmp-repos": true,
+    "**/.next": true
+  }
+}

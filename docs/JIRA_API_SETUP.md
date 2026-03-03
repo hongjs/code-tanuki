@@ -186,7 +186,7 @@ Code-Tanuki automatically extracts Jira ticket IDs from PR titles using these pa
 
 ```
 feat(PROJ-123): Add new feature          → PROJ-123
-fix(BYD-456): Fix authentication bug      → BYD-456
+fix(ABC-456): Fix authentication bug      → ABC-456
 chore(TEAM-789): Update dependencies      → TEAM-789
 docs(DOC-001): Update README              → DOC-001
 ```

@@ -42,6 +42,7 @@ import SyncIcon from '@mui/icons-material/Sync';
 import CloudOffIcon from '@mui/icons-material/CloudOff';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { format } from 'date-fns';
+import { safeFormat, isAfterSafe } from '@/lib/utils/date';
 import { LocalTicket, TicketType } from '@/types/ticket';
 import { TicketFilters } from './TicketFilters';
 import { TicketDetailDialog } from './TicketDetailDialog';
@@ -52,7 +53,7 @@ import { getTypeChipSx, getStatusChipSx } from './ticketColors';
 function isTicketUnsynced(ticket: LocalTicket) {
   if (!ticket.jiraKey) return true;
   if (!ticket.syncedAt) return true;
-  return new Date(ticket.updatedAt).getTime() > new Date(ticket.syncedAt).getTime();
+  return isAfterSafe(ticket.updatedAt, ticket.syncedAt);
 }
 
 type ViewMode = 'list' | 'epic' | 'story';
@@ -415,7 +416,7 @@ export function TicketsManager() {
       width: 130,
       renderCell: (params) => (
         <Typography variant="body2" color="text.secondary">
-          {format(new Date(params.value), 'MMM dd, HH:mm')}
+          {safeFormat(params.value, 'MMM dd, HH:mm')}
         </Typography>
       ),
     },
