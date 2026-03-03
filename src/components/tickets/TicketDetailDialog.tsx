@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -67,6 +67,13 @@ export function TicketDetailDialog({
   const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState<Partial<LocalTicket>>({});
+  
+  // Reset state when ticket changes or dialog opens/closes
+  useEffect(() => {
+    setEditMode(false);
+    setForm({});
+    setError(null);
+  }, [ticket?.localId]);
 
   const handleStartEdit = () => {
     if (!ticket) return;
@@ -79,7 +86,6 @@ export function TicketDetailDialog({
       storyPoints: ticket.storyPoints,
       assignee: ticket.assignee || '',
       parentKey: ticket.parentKey || '',
-      acceptanceCriteria: ticket.acceptanceCriteria || '',
     });
     setEditMode(true);
     setError(null);
@@ -104,7 +110,6 @@ export function TicketDetailDialog({
         storyPoints: form.storyPoints,
         assignee: form.assignee || undefined,
         parentKey: form.parentKey || undefined,
-        acceptanceCriteria: form.acceptanceCriteria || undefined,
       };
       await onSave(ticket.localId, updates);
       setEditMode(false);
@@ -412,29 +417,6 @@ export function TicketDetailDialog({
             </Box>
           ) : null}
 
-          {/* Acceptance Criteria */}
-          {editMode ? (
-            <TextField
-              label="Acceptance Criteria"
-              value={form.acceptanceCriteria || ''}
-              onChange={(e) => setForm({ ...form, acceptanceCriteria: e.target.value })}
-              fullWidth
-              multiline
-              minRows={3}
-              maxRows={8}
-            />
-          ) : ticket.acceptanceCriteria ? (
-            <Box>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, fontSize: '1rem' }}>
-                Acceptance Criteria
-              </Typography>
-              <Box sx={markdownSx}>
-                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
-                  {ticket.acceptanceCriteria}
-                </ReactMarkdown>
-              </Box>
-            </Box>
-          ) : null}
 
           {/* Attachments Section */}
           {!editMode && ticket.attachments && ticket.attachments.length > 0 && (
@@ -483,6 +465,9 @@ export function TicketDetailDialog({
           {/* Metadata */}
           <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.9rem' }}>
+              Local ID: <strong>{ticket.localId}</strong>
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.9rem' }}>
               Created: {safeFormat(ticket.createdAt, 'MMM dd, yyyy HH:mm')}
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.9rem' }}>
@@ -494,6 +479,55 @@ export function TicketDetailDialog({
               </Typography>
             )}
           </Box>
+
+          <Divider />
+
+          {/* Comments Section */}
+          {!editMode && (
+            <Box>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, fontSize: '1rem' }}>
+                Comments {ticket.comments && ticket.comments.length > 0 ? `(${ticket.comments.length})` : ''}
+              </Typography>
+              {ticket.comments && ticket.comments.length > 0 ? (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {ticket.comments.map((comment) => (
+                    <Box
+                      key={comment.id}
+                      sx={{
+                        backgroundColor: '#f8fafc',
+                        borderRadius: '12px',
+                        p: 2,
+                        border: '1px solid #e2e8f0',
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, alignItems: 'center' }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#334155' }}>
+                          {comment.author}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {safeFormat(comment.created, 'MMM dd, yyyy HH:mm')}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ ...markdownSx, fontSize: '0.95rem' }}>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+                          {comment.body}
+                        </ReactMarkdown>
+                      </Box>
+                      {comment.updated !== comment.created && (
+                        <Typography variant="caption" color="text.disabled" sx={{ mt: 1, display: 'block' }}>
+                          Edited: {safeFormat(comment.updated, 'MMM dd, yyyy HH:mm')}
+                        </Typography>
+                      )}
+                    </Box>
+                  ))}
+                </Box>
+              ) : (
+                <Typography variant="body2" color="text.disabled" sx={{ fontStyle: 'italic' }}>
+                  No comments yet.
+                </Typography>
+              )}
+            </Box>
+          )}
         </Box>
       </DialogContent>
 

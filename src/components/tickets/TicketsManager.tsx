@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import {
   Box,
   Typography,
@@ -61,7 +62,7 @@ type ViewMode = 'list' | 'epic' | 'story';
 export function TicketsManager() {
   const [tickets, setTickets] = useState<LocalTicket[]>([]);
   const [loading, setLoading] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [viewMode, setViewMode] = useState<ViewMode>('story');
 
   // Filters
   const [search, setSearch] = useState('');
@@ -77,6 +78,10 @@ export function TicketsManager() {
   // Detail dialog
   const [selectedTicket, setSelectedTicket] = useState<LocalTicket | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  const params = useParams();
+  const router = useRouter();
+  const initialLoadRef = useRef(false);
 
   // Sync New Ticket dialog
   const [syncNewDialogOpen, setSyncNewDialogOpen] = useState(false);
@@ -119,6 +124,18 @@ export function TicketsManager() {
     fetchTickets();
   }, [fetchTickets]);
 
+  // Handle deep linking from URL
+  useEffect(() => {
+    const localId = params?.localId as string | undefined;
+    if (localId && tickets.length > 0 && !initialLoadRef.current) {
+      const ticket = tickets.find((t) => t.localId === localId);
+      if (ticket) {
+        handleOpenDialog(ticket);
+        initialLoadRef.current = true;
+      }
+    }
+  }, [params, tickets]);
+
   const showSnackbar = (message: string, severity: 'success' | 'error' = 'success') => {
     setSnackbar({ open: true, message, severity });
   };
@@ -144,6 +161,9 @@ export function TicketsManager() {
     setDialogOpen(true);
     handleCloseMenu();
 
+    // Update URL
+    window.history.pushState(null, '', `/tickets/${ticket.localId}`);
+
     // Fetch full item (includes description, acceptanceCriteria, etc.)
     try {
       const res = await fetch(`/api/tickets/${ticket.localId}`);
@@ -159,6 +179,8 @@ export function TicketsManager() {
   const handleCloseDialog = () => {
     setDialogOpen(false);
     setSelectedTicket(null);
+    // Restore URL
+    window.history.pushState(null, '', '/tickets');
   };
 
   const handleSave = async (localId: string, updates: Partial<LocalTicket>) => {

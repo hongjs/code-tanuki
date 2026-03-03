@@ -18,11 +18,16 @@ When a user requests a code review via Claude Code by providing a GitHub PR link
 
 3. **Jira Context Sync:**
    - Automatically extract any Jira ticket ID from the PR title or body (e.g., `ABC-1234`).
-   - If found, run the ticket sync mechanism or read the existing ticket data from `data/jira-tickets/data/{ticketId}`. Ensure attachments/images and comments are read to understand the full context.
-   - Use the workspace's TicketStorage utility or API if necessary.
+   - If found:
+     - Check if the ticket exists locally in `data/jira-tickets/tickets.json`.
+     - **If NOT synced**: You **MUST** run `yarn sync-jira <TICKET_ID>` to pull the full context (including attachments and comments) before proceeding with the analysis.
+     - If already synced: Read the existing data from `data/jira-tickets/data/{ticketId}/item.json`.
 
 4. **AI Analysis:**
-   - Perform a thorough code review. Look for bugs, edge cases, missing tests, and adherence to the project's knowledge base (`data/knowledge.md`).
+   - Perform a thorough code review following the **3-Phase Process** defined in the `code-review` skill.
+   - **CRITICAL: Verify Line Numbers.** Never trust the line numbers from `gh pr diff` output alone as they might be relative or shifted. You **MUST** run a command like `cat -n <file>` or `grep -n` on the locally checked-out files to find the **exact** absolute line number in the final file version before generating comments.
+   - **No Compliments:** Do NOT include comments that only serve to praise or compliment the code (e.g., "Good job", "I like this design"). Focus only on constructive feedback, suggestions, or identifying issues.
+   - **Concise English:** Write all comments in very short, simple, and concise English.
    - Generate your review comments pointing exactly to the file paths and line numbers affected by the PR.
 
 5. **Data Persistence (JSON Storage):**
@@ -43,14 +48,16 @@ When a user requests a code review via Claude Code by providing a GitHub PR link
        "comments": [
          {
            "path": "path/to/changed/file.ts",
-           "line": 15,
-           "body": "Your review comment string. You can include ```suggestion blocks.",
-           "severity": "suggestion"
+           "line": 42,
+           "start_line": 38, // Optional: for multi-line suggestions only
+           "body": "Your review comment. Use ```suggestion blocks if applicable.",
+           "severity": "critical | warning | suggestion"
          }
-       ]
+       ],
+       "knowledgeSection": "## PR: [topic]\n\n- Observation 1\n- Observation 2"
      }
      ````
-   - Update the index file `data/reviews-v2/all-reviews.json`. Read the JSON array, prepend a new `ReviewV2IndexEntry` object (excluding the `comments` array), and write it back.
+   - Update the index file `data/reviews-v2/all-reviews.json`. Read the JSON array, prepend a new `ReviewV2IndexEntry` object (excluding the `comments` and `knowledgeSection` fields), and write it back.
 
 6. **Notify User:**
    - Once the files are successfully written, inform the user that the review has been generated locally.

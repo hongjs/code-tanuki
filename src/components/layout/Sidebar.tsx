@@ -29,19 +29,7 @@ const drawerWidth = 280;
 
 const mainMenuItems = [
   {
-    text: 'Review',
-    icon: <RateReviewIcon />,
-    path: '/review',
-    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-  },
-  {
-    text: 'History',
-    icon: <HistoryIcon />,
-    path: '/history',
-    gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-  },
-  {
-    text: 'Code Review v2',
+    text: 'Code Review',
     icon: <ArticleIcon />,
     path: '/code-review-v2',
     gradient: 'linear-gradient(135deg, #818cf8 0%, #c084fc 100%)',
@@ -51,6 +39,18 @@ const mainMenuItems = [
     icon: <AssignmentIcon />,
     path: '/tickets',
     gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+  },
+  {
+    text: 'Code Review (API)',
+    icon: <RateReviewIcon />,
+    path: '/review',
+    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  },
+  {
+    text: 'History',
+    icon: <HistoryIcon />,
+    path: '/history',
+    gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
   },
 ];
 
