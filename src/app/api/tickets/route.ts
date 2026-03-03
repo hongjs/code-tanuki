@@ -18,7 +18,6 @@ const createTicketSchema = z.object({
   parentKey: z.string().optional(),
   subtaskKeys: z.array(z.string()).optional(),
   labels: z.array(z.string()).optional(),
-  acceptanceCriteria: z.string().optional(),
 });
 
 export async function GET(request: NextRequest) {

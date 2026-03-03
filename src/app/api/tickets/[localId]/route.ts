@@ -17,7 +17,6 @@ const updateTicketSchema = z.object({
   parentKey: z.string().optional(),
   subtaskKeys: z.array(z.string()).optional(),
   labels: z.array(z.string()).optional(),
-  acceptanceCriteria: z.string().optional(),
 });
 
 interface RouteParams {

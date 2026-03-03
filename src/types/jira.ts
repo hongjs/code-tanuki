@@ -19,7 +19,6 @@ export interface JiraTicket {
   description: string;
   status: string;
   type: string;
-  acceptanceCriteria?: string;
   priority?: string;
   assignee?: {
     displayName: string;
