@@ -49,6 +49,11 @@ When a user requests to create, draft, or write a Jira ticket (Epic, Story, Task
      }
      ```
 
-5. **Notify User:**
+5. **Synchronizing Existing Tickets:**
+   - If the user provides an existing Jira Key (e.g., `ABC-123`) and wants to fetch it locally:
+     - Run: `yarn sync-jira <JIRA_KEY>`
+     - This will fetch the latest data and attachments from Jira and store them in the local JSON storage.
+
+6. **Notify User:**
    - Once the files are successfully written, inform the user that the ticket has been drafted locally.
    - Instruct the user to open the web UI at `http://localhost:3000/tickets` (or the equivalent local URL) to review the ticket, make any final edits, and use the **Publish/Update** button to push it to the remote Jira instance.

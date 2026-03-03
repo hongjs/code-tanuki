@@ -17,6 +17,8 @@ Use this skill when the user wants to create, draft, or write a Jira ticket (Epi
    - Use Markdown for `description` heads like `### 📌 Background / Problem`.
 5. **Update Index**:
    - Prepend the new entry to `data/jira-tickets/tickets.json`.
-6. **Notify**:
-   - Tell the user the ticket is drafted.
+6. **Syncing Existing Tickets**:
+   - If the user provides a Jira Key (e.g., ABC-123) and wants to sync it locally, use: `yarn sync-jira <JIRA_KEY>`.
+7. **Notify**:
+   - Tell the user the ticket is drafted or synced.
    - Direct them to `http://localhost:3000/tickets` to publish/update to Jira.

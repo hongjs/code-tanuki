@@ -3,9 +3,11 @@
     "**/node_modules": true,
     "**/dist": true,
     "**/.next": true,
-    "tmp-repos": true
+    "tmp-repos": true,
+    ".next": true
   },
   "files.exclude": {
-    "tmp-repos": false
+    "**/tmp-repos": true,
+    "**/.next": true
   }
 }
