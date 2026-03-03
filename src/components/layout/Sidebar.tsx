@@ -22,6 +22,7 @@ import CodeIcon from '@mui/icons-material/Code';
 import MenuIcon from '@mui/icons-material/Menu';
 import TipsAndUpdatesIcon from '@mui/icons-material/TipsAndUpdates';
 import AssignmentIcon from '@mui/icons-material/Assignment';
+import ArticleIcon from '@mui/icons-material/Article';
 import { useState } from 'react';
 
 const drawerWidth = 280;
@@ -38,6 +39,12 @@ const mainMenuItems = [
     icon: <HistoryIcon />,
     path: '/history',
     gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+  },
+  {
+    text: 'Code Review v2',
+    icon: <ArticleIcon />,
+    path: '/code-review-v2',
+    gradient: 'linear-gradient(135deg, #818cf8 0%, #c084fc 100%)',
   },
   {
     text: 'Jira Tickets',
