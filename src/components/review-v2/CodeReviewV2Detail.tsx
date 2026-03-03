@@ -509,39 +509,68 @@ export function CodeReviewV2Detail({ id }: { id: string }) {
              {selectedFile && fileDiffs[selectedFile] ? (
                <Paper sx={{ border: '1px solid #d0d7de', borderRadius: '6px', overflow: 'hidden', bgcolor: 'white' }}>
                  <Box component="pre" sx={{ m: 0, p: 0, fontFamily: 'monospace', fontSize: '12px' }}>
-                   {fileDiffs[selectedFile].lines.map((line, lineIdx) => {
-                     const lineComments = comments.filter(c => {
-                       if (c.path !== selectedFile) return false;
-                       if (line.newLine && c.line === line.newLine) return true;
-                       return false;
-                     });
+                    {(() => {
+                      const renderedCommentIds = new Set<string>();
+                      const lines = fileDiffs[selectedFile].lines;
+                      
+                      const diffContent = lines.map((line, lineIdx) => {
+                        const lineComments = comments.filter(c => {
+                          if (c.path !== selectedFile) return false;
+                          if (line.newLine && c.line === line.newLine) return true;
+                          return false;
+                        });
 
-                     return (
-                       <Box key={lineIdx}>
-                         <Box sx={{ 
-                           display: 'flex', 
-                           bgcolor: line.type === 'added' ? '#e6ffec' : line.type === 'removed' ? '#ffebe9' : line.type === 'header' ? '#fbf1ff' : 'white',
-                           '&:hover': { bgcolor: line.type === 'added' ? '#acf2bd' : line.type === 'removed' ? '#ffdce0' : '#f6f8fa' }
-                         }}>
-                           <Box sx={{ width: 50, textAlign: 'right', pr: 1, userSelect: 'none', color: '#aaa', borderRight: '1px solid #eee', bgcolor: '#f6f8fa' }}>
-                             {line.oldLine || ''}
-                           </Box>
-                           <Box sx={{ width: 50, textAlign: 'right', pr: 1, userSelect: 'none', color: '#aaa', borderRight: '1px solid #eee', bgcolor: '#f6f8fa' }}>
-                             {line.newLine || ''}
-                           </Box>
-                           <Box sx={{ px: 1, flex: 1, overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-                             {line.type === 'added' ? '+' : line.type === 'removed' ? '-' : ' '} {line.content}
-                           </Box>
-                         </Box>
+                        lineComments.forEach(c => {
+                          renderedCommentIds.add(`${c.path}-${c.line}-${c.body.substring(0, 30)}`);
+                        });
 
-                         {lineComments.length > 0 && (
-                           <Box sx={{ borderTop: '1px solid #d0d7de', borderBottom: '1px solid #d0d7de' }}>
-                             {renderComments(lineComments)}
-                           </Box>
-                         )}
-                       </Box>
-                     );
-                   })}
+                        return (
+                          <Box key={lineIdx}>
+                            <Box sx={{ 
+                              display: 'flex', 
+                              bgcolor: line.type === 'added' ? '#e6ffec' : line.type === 'removed' ? '#ffebe9' : line.type === 'header' ? '#fbf1ff' : 'white',
+                              '&:hover': { bgcolor: line.type === 'added' ? '#acf2bd' : line.type === 'removed' ? '#ffdce0' : '#f6f8fa' }
+                            }}>
+                              <Box sx={{ width: 50, textAlign: 'right', pr: 1, userSelect: 'none', color: '#aaa', borderRight: '1px solid #eee', bgcolor: '#f6f8fa' }}>
+                                {line.oldLine || ''}
+                              </Box>
+                              <Box sx={{ width: 50, textAlign: 'right', pr: 1, userSelect: 'none', color: '#aaa', borderRight: '1px solid #eee', bgcolor: '#f6f8fa' }}>
+                                {line.newLine || ''}
+                              </Box>
+                              <Box sx={{ px: 1, flex: 1, overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                                {line.type === 'added' ? '+' : line.type === 'removed' ? '-' : ' '} {line.content}
+                              </Box>
+                            </Box>
+
+                            {lineComments.length > 0 && (
+                              <Box sx={{ borderTop: '1px solid #d0d7de', borderBottom: '1px solid #d0d7de' }}>
+                                {renderComments(lineComments)}
+                              </Box>
+                            )}
+                          </Box>
+                        );
+                      });
+
+                      const unmatchedComments = comments.filter(c => 
+                        c.path === selectedFile && 
+                        !renderedCommentIds.has(`${c.path}-${c.line}-${c.body.substring(0, 30)}`)
+                      );
+
+                      return (
+                        <>
+                          {diffContent}
+                          {unmatchedComments.length > 0 && (
+                            <Box sx={{ mt: 2, p: 2, borderTop: '2px dashed #d0d7de', bgcolor: '#fffbed' }}>
+                              <Typography variant="subtitle2" sx={{ mb: 2, color: '#856404', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <WarningIcon sx={{ fontSize: 18 }} />
+                                Comments on other lines (not visible in this diff)
+                              </Typography>
+                              {renderComments(unmatchedComments)}
+                            </Box>
+                          )}
+                        </>
+                      );
+                    })()}
                  </Box>
                </Paper>
              ) : (
