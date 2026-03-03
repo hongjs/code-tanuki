@@ -33,6 +33,7 @@ import SyncIcon from '@mui/icons-material/Sync';
 import CloseIcon from '@mui/icons-material/Close';
 import { LocalTicket, TicketType } from '@/types/ticket';
 import { format } from 'date-fns';
+import { safeFormat } from '@/lib/utils/date';
 import { getTypeChipSx, getStatusChipSx, getPriorityColor } from './ticketColors';
 
 interface TicketDetailDialogProps {
@@ -372,7 +373,7 @@ export function TicketDetailDialog({
           {/* Parent Key */}
           {editMode && (
             <TextField
-              label="Parent Key (e.g. BYD-1540)"
+              label="Parent Key (e.g. ABC-1540)"
               size="small"
               value={form.parentKey || ''}
               onChange={(e) => setForm({ ...form, parentKey: e.target.value })}
@@ -482,14 +483,14 @@ export function TicketDetailDialog({
           {/* Metadata */}
           <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.9rem' }}>
-              Created: {format(new Date(ticket.createdAt), 'MMM dd, yyyy HH:mm')}
+              Created: {safeFormat(ticket.createdAt, 'MMM dd, yyyy HH:mm')}
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.9rem' }}>
-              Updated: {format(new Date(ticket.updatedAt), 'MMM dd, yyyy HH:mm')}
+              Updated: {safeFormat(ticket.updatedAt, 'MMM dd, yyyy HH:mm')}
             </Typography>
             {ticket.syncedAt && (
               <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.9rem' }}>
-                Synced: {format(new Date(ticket.syncedAt), 'MMM dd, yyyy HH:mm')}
+                Synced: {safeFormat(ticket.syncedAt, 'MMM dd, yyyy HH:mm')}
               </Typography>
             )}
           </Box>

@@ -32,7 +32,7 @@ ENV PORT=3000
 
 # Create data and logs directories and ensure proper permissions
 # Using .next/cache to prevent permission issues during standalone run
-RUN mkdir -p /data/reviews /logs .next/cache && \
+RUN mkdir -p /data/reviews /data/reviews-v2 /data/jira-tickets /logs .next/cache && \
     chown -R node:node /data /logs /app/.next
 
 # Switch to non-root user

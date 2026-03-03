@@ -13,12 +13,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Jira Key is required' }, { status: 400 });
     }
 
-    // Check if it already exists
+    // Check if it already exists, if so, update it instead of creating new
     const existingTickets = await ticketStorage.getAll();
     const existing = existingTickets.find((t) => t.jiraKey === jiraKey);
-    if (existing) {
-      return NextResponse.json({ error: `Ticket ${jiraKey} already exists as ${existing.localId}` }, { status: 409 });
-    }
+    const targetLocalId = existing ? existing.localId : uuidv7();
 
     const client = new JiraClient(env.JIRA_BASE_URL, env.JIRA_EMAIL, env.JIRA_API_TOKEN);
     const issueData = await client.fetchFullIssue(jiraKey, env.JIRA_STORY_POINTS_FIELD, env.JIRA_EPIC_LINK_FIELD);
@@ -28,19 +26,10 @@ export async function POST(request: NextRequest) {
     }
 
     const newTicket: LocalTicket = {
-      localId: uuidv7(),
+      ...(issueData as any),
+      localId: targetLocalId,
       jiraKey: jiraKey,
-      title: issueData.title,
-      description: issueData.description,
-      type: (issueData as any).type || 'Story', // fetchFullIssue doesn't return type but we can default or fetch it differently
-      status: issueData.status || 'To Do',
-      priority: issueData.priority,
-      storyPoints: issueData.storyPoints,
-      assignee: issueData.assignee,
-      parentKey: issueData.parentKey,
-      acceptanceCriteria: issueData.acceptanceCriteria,
-      attachments: issueData.attachments,
-      createdAt: new Date().toISOString(),
+      createdAt: existing ? existing.createdAt : new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       syncedAt: new Date().toISOString(),
     };

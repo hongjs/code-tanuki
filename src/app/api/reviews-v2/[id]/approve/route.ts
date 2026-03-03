@@ -44,7 +44,7 @@ export async function POST(
 
     return NextResponse.json({ success: true, message: 'Review posted to GitHub successfully' });
   } catch (error: any) {
-    logger.error('Failed to post review-v2 comments to GitHub', { id: params.id, error: error.message });
+    logger.error('Failed to post review-v2 comments to GitHub', { url: request.url, error: error.message });
     return NextResponse.json({ error: error.message || 'Failed to post review comments' }, { status: 500 });
   }
 }

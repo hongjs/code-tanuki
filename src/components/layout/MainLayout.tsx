@@ -12,7 +12,6 @@ interface MainLayoutProps {
 
 export function MainLayout({ children }: MainLayoutProps) {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', background: '#f8fafc' }}>
@@ -42,7 +41,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         <Container
           maxWidth="xl"
           sx={{
-            pt: isMobile ? 10 : 4,
+            pt: { xs: 10, md: 4 },
             pb: 4,
             position: 'relative',
             zIndex: 1,

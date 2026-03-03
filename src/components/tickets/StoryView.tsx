@@ -19,12 +19,13 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import SubdirectoryArrowRightIcon from '@mui/icons-material/SubdirectoryArrowRight';
 import CloudOffIcon from '@mui/icons-material/CloudOff';
 import { LocalTicket } from '@/types/ticket';
+import { isAfterSafe } from '@/lib/utils/date';
 import { getTypeChipSx, getStatusChipSx } from './ticketColors';
 
 function isTicketUnsynced(ticket: LocalTicket) {
   if (!ticket.jiraKey) return true;
   if (!ticket.syncedAt) return true;
-  return new Date(ticket.updatedAt).getTime() > new Date(ticket.syncedAt).getTime();
+  return isAfterSafe(ticket.updatedAt, ticket.syncedAt);
 }
 
 interface StoryViewProps {

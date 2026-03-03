@@ -534,7 +534,7 @@ export function ReviewForm() {
               <Box>
                 <TextField
                   label="Jira Ticket ID (Optional)"
-                  placeholder="BYD-1234"
+                  placeholder="ABC-1234"
                   value={jiraTicketId}
                   onChange={(e) => handleInputChange('jiraTicketId', e.target.value)}
                   fullWidth
