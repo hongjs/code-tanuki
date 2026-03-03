@@ -40,23 +40,6 @@ export class JiraClient {
           const { data } = response;
           const fields = data.fields;
 
-          // Extract acceptance criteria from description or custom field
-          let acceptanceCriteria: string | undefined;
-          if (fields.description?.content) {
-            const content = fields.description.content;
-            for (const block of content) {
-              if (block.type === 'heading' && ['acceptance criteria', 'a/c'].includes(block.content?.[0]?.text?.toLowerCase())) {
-                // Find next paragraph block
-                const index = content.indexOf(block);
-                if (index !== -1 && content[index + 1]?.type === 'paragraph') {
-                  acceptanceCriteria = content[index + 1].content
-                    ?.map((c: { text?: string }) => c.text)
-                    .join('');
-                }
-              }
-            }
-          }
-
           const attachments: JiraAttachment[] = (fields.attachment ?? [])
             .filter((a: any) => a.mimeType?.startsWith('image/'))
             .map((a: any) => ({
@@ -72,7 +55,6 @@ export class JiraClient {
             description: this.adfToMarkdown(fields.description),
             status: fields.status.name,
             type: fields.issuetype.name,
-            acceptanceCriteria,
             priority: fields.priority?.name,
             assignee: fields.assignee
               ? {
@@ -199,10 +181,6 @@ export class JiraClient {
           };
 
           let fullDescription = ticket.description;
-          if (ticket.acceptanceCriteria) {
-            const acContent = `### ✅ Acceptance Criteria\n\n${ticket.acceptanceCriteria.trim()}`;
-            fullDescription = fullDescription ? `${fullDescription.trim()}\n\n${acContent}` : acContent;
-          }
 
           if (fullDescription) {
             fields.description = this.textToADF(fullDescription);
@@ -266,12 +244,8 @@ export class JiraClient {
             fields.summary = ticket.title;
           }
 
-          if (ticket.description !== undefined || ticket.acceptanceCriteria !== undefined) {
+          if (ticket.description !== undefined) {
             let fullDescription = ticket.description;
-            if (ticket.acceptanceCriteria) {
-              const acContent = `### ✅ Acceptance Criteria\n\n${ticket.acceptanceCriteria.trim()}`;
-              fullDescription = fullDescription ? `${fullDescription.trim()}\n\n${acContent}` : acContent;
-            }
             if (fullDescription !== undefined) {
               fields.description = this.textToADF(fullDescription);
             }
@@ -346,9 +320,6 @@ export class JiraClient {
           });
 
           let description = this.adfToMarkdown(fields.description);
-          const acceptanceCriteria = this.extractAdfSection(fields.description, [
-            'acceptance criteria', 'acceptance criterion', 'a/c', 'ac',
-          ]);
 
           const attachments: JiraAttachment[] = (fields.attachment ?? [])
             .filter((a: any) => a.mimeType?.startsWith('image/'))
@@ -370,20 +341,12 @@ export class JiraClient {
             }
           }
 
-          // Strip the Acceptance Criteria section from the main description
-          // so it doesn't duplicate in the UI (since ticket.description and ticket.acceptanceCriteria are rendered separately)
-          if (acceptanceCriteria) {
-            const acRegex = /###\s+(✅\s+)?Acceptance Criteria[\s\S]*$/i;
-            description = description.replace(acRegex, '').trim();
-          }
-
           const partial: Partial<LocalTicket> = {
             jiraKey: data.key,
             title: fields.summary,
             type: fields.issuetype?.name as TicketType || 'Story',
             status: fields.status?.name,
             description,
-            acceptanceCriteria,
             priority: fields.priority?.name,
             assignee: fields.assignee?.displayName,
             storyPoints: fields[storyPointsField] ?? undefined,

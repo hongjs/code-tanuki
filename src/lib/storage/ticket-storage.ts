@@ -51,7 +51,6 @@ function migrateEntry(raw: Record<string, unknown>): LocalTicket {
     parentKey: (raw.parentEpic as string) || undefined,
     subtaskKeys: (raw.subtasks as string[]) || undefined,
     labels: raw.labels as string[] | undefined,
-    acceptanceCriteria: raw.acceptanceCriteria as string | undefined,
     createdAt: now,
     updatedAt: now,
   };

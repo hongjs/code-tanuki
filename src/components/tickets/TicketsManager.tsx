@@ -217,9 +217,11 @@ export function TicketsManager() {
     if (!res.ok) throw new Error(data.error || 'Failed to create on Jira');
     await fetchTickets();
     if (selectedTicket?.localId === localId) {
-      const updatedList = await fetch('/api/tickets').then(r => r.json());
-      const updatedItem = updatedList.tickets.find((t: LocalTicket) => t.localId === localId);
-      if (updatedItem) setSelectedTicket(updatedItem);
+      const resDetail = await fetch(`/api/tickets/${localId}`);
+      if (resDetail.ok) {
+        const dataDetail = await resDetail.json();
+        setSelectedTicket(dataDetail.ticket);
+      }
     }
     showSnackbar(`Created on Jira: ${data.jiraKey}`);
   };
@@ -232,9 +234,11 @@ export function TicketsManager() {
     }
     await fetchTickets();
     if (selectedTicket?.localId === localId) {
-      const updatedList = await fetch('/api/tickets').then(r => r.json());
-      const updatedItem = updatedList.tickets.find((t: LocalTicket) => t.localId === localId);
-      if (updatedItem) setSelectedTicket(updatedItem);
+      const resDetail = await fetch(`/api/tickets/${localId}`);
+      if (resDetail.ok) {
+        const dataDetail = await resDetail.json();
+        setSelectedTicket(dataDetail.ticket);
+      }
     }
     showSnackbar('Updated on Jira');
   };
@@ -245,9 +249,11 @@ export function TicketsManager() {
     if (!res.ok) throw new Error(data.error || 'Failed to sync');
     await fetchTickets();
     if (selectedTicket?.localId === localId) {
-      const updatedList = await fetch('/api/tickets').then(r => r.json());
-      const updatedItem = updatedList.tickets.find((t: LocalTicket) => t.localId === localId);
-      if (updatedItem) setSelectedTicket(updatedItem);
+      const resDetail = await fetch(`/api/tickets/${localId}`);
+      if (resDetail.ok) {
+        const dataDetail = await resDetail.json();
+        setSelectedTicket(dataDetail.ticket);
+      }
     }
     showSnackbar('Synced from Jira');
   };

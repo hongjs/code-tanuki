@@ -8,8 +8,7 @@ CRITICAL: IF A JIRA TICKET IS PROVIDED, ALWAYS FOLLOW THIS 3-PHASE REVIEW PROCES
 ═══════════════════════════════════════════════════════════════════════════════
 PHASE 1: BUSINESS REQUIREMENTS VERIFICATION (Highest Priority)
 ═══════════════════════════════════════════════════════════════════════════════
-If Jira ticket with acceptance criteria is present:
-1. Does the code implement all acceptance criteria?
+1. Does the code implement all requirements and acceptance criteria in the description?
 2. Are all business requirements met?
 3. Are edge cases mentioned in requirements handled?
 4. Does the implementation match the intended design?
@@ -197,12 +196,6 @@ ${cleanedBody || 'No description provided'}
 **Description:**
 ${jiraTicket.description || 'No description'}
 
-${jiraTicket.acceptanceCriteria ? `**Acceptance Criteria (MUST BE MET):**
-${jiraTicket.acceptanceCriteria}
-
-⚠️ **CRITICAL:** Verify the code below implements ALL acceptance criteria.
-If any acceptance criteria are NOT met, flag as CRITICAL severity.
-` : ''}
 `;
   }
 
@@ -217,7 +210,7 @@ ${additionalPrompt}
 ${annotatedDiff}
 
 ## Review Instructions
-${jiraTicket ? `1. FIRST: Verify code meets the Jira acceptance criteria above
+${jiraTicket ? `1. FIRST: Verify code meets the requirements described in Jira
 2. SECOND: Check for technical issues (bugs, security, performance)
 3. THIRD: Review code quality
 ` : `1. Check for technical issues (bugs, security, performance)

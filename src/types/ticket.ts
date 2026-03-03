@@ -17,7 +17,6 @@ export interface LocalTicket {
   parentKey?: string;       // jiraKey of parent Epic/Story
   subtaskKeys?: string[];   // jiraKey of subtasks
   labels?: string[];
-  acceptanceCriteria?: string;
   attachments?: JiraAttachment[];
   comments?: JiraComment[];
   createdAt: string;        // ISO - when added locally
