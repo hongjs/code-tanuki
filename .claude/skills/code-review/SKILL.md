@@ -1,66 +1,51 @@
-# Code Review v2 Skill
+# Code Review Skill
 
-This skill defines the technical expertise and quality standards required for performing a **Code Review0**. It focuses on _how_ to analyze code effectively and provide professional, high-signal feedback.
+Defines the quality standards and review process for performing a code review.
 
 ## 🏆 3-Phase Review Process
 
-Always follow this prioritization hierarchy:
+### Phase 1: Business Requirements (Highest Priority)
 
-### PHASE 1: Business Requirements Verification (Highest Priority)
+If a Jira ticket with acceptance criteria is present:
 
-If Jira ticket with acceptance criteria is present:
+1. Does the code implement all Acceptance Criteria?
+2. Are all business rules and requirements met?
+3. Are requirement edge cases handled?
+4. Does the implementation match the intended design?
 
-1. **Acceptance Criteria**: Does the code implement all ACs?
-2. **Business Requirements**: Are all business rules and requirements met?
-3. **Requirement Edge Cases**: Are edge cases mentioned in the requirements handled?
-4. **Design Intent**: Does the implementation match the intended design?
-   → **Flag CRITICAL** issues if acceptance criteria are NOT met.
+→ Flag **CRITICAL** if any AC is not met.
 
-### PHASE 2: Technical Correctness (High Priority)
+### Phase 2: Technical Correctness (High Priority)
 
 1. **Critical Bugs**: Security vulnerabilities, data loss risks, race conditions.
 2. **Logic & Performance**: Logic errors, memory leaks, performance bottlenecks.
 3. **API Contracts**: Breaking changes or contract violations.
-   → These are secondary ONLY to business requirements verification.
 
-### PHASE 3: Code Quality (Lower Priority)
+### Phase 3: Code Quality (Lower Priority)
 
 1. Maintainability and readability concerns.
-2. Code style or structure improvements (avoiding trivialities).
+2. Code structure improvements (avoid trivial nits).
 3. Type safety enhancements.
 
 ---
 
-## 🛠️ Review Quality Guidelines
+## 🛠️ Review Standards
 
-### 1. Analysis Standards (IMPORTANT)
+### Analysis
 
-- **Focus on IMPORTANT issues only**: Aim for 3-10 meaningful comments per PR. Fewer is better.
-- **No Compliments**: Do NOT include comments that only serve to praise (e.g., "Good job").
-- **Avoid Trivial Comments**: Skip minor style preferences, obvious observations, or nits handled by linters.
-- **Communication Style**: Keep comment bodies **SHORT and concise** (2-3 sentences max). NEVER write lengthy explanations.
+- Focus on **3–10 meaningful comments** per PR. Fewer is better.
+- No compliments. No trivial style comments already handled by linters.
+- Keep each comment **short** (2–3 sentences max).
 
-### 2. Absolute Accuracy in Line Numbers
+### Line Number Accuracy
 
-- **Rule**: Never trust relative line numbers from diffs.
-- **Technique**: Always verify the **Absolute Line Number** using `cat -n <file>`, `grep -n`, or `view_file` on the locally checked-out branch before finalizing any comment.
+Never trust line numbers from diff output — they may be relative or shifted.
+Always verify using `cat -n <file>` or `grep -n` on the locally checked-out file.
 
-### 3. Code Suggestions
+### Code Suggestions
 
-Use GitHub's suggestion format for actionable changes:
+Use GitHub's suggestion format:
 
-- **Single-line suggestion**: Use `line` property and ` ```suggestion ` block.
-- **Multi-line suggestion**: Use `start_line` + `line` properties. The block replaces ALL lines from `start_line` to `line`.
-- **Indentation**: ALWAYS preserve original indentation in suggestion blocks.
-
----
-
-## 🧠 Self-Learning (REQUIRED)
-
-Every review must include a `knowledgeSection` (Markdown) for the local database:
-
-1. Tech stack/framework observations.
-2. Project-specific conventions or architectural decisions discovered.
-3. Recurring issues or patterns worth flagging in future reviews.
-
-Format: Start with a heading, e.g., `## PR: [brief topic]`.
+- **Single-line**: Use `line` property with a ` ```suggestion ` block.
+- **Multi-line**: Use `start_line` + `line`. The block replaces all lines in that range.
+- Always preserve original indentation.
