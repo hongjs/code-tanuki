@@ -4,13 +4,13 @@
 
 ## Project Overview
 
-Code-Tanuki is an AI-powered code review tool built with Next.js 16, TypeScript, and Material-UI. It integrates with GitHub, Jira, and Claude AI to automate code reviews on pull requests.
+Code-Tanuki is an AI-powered code review and Jira assistant built with Next.js 16, TypeScript, and Material-UI. It integrates with GitHub, Jira, Claude AI, and Google Gemini to automate code reviews on pull requests, and provides a local Jira ticket management system.
 
 ### Quick Facts
 
 - **Framework**: Next.js 16 (App Router)
 - **Language**: TypeScript 5.7
-- **UI**: Material-UI (MUI) + Tailwind CSS
+- **UI**: Material-UI (MUI v7) + Tailwind CSS v4
 - **State**: React Hooks (no global state management)
 - **API**: Next.js API Routes (serverless)
 - **Storage**: JSON files with abstraction layer
@@ -21,182 +21,256 @@ Code-Tanuki is an AI-powered code review tool built with Next.js 16, TypeScript,
 
 ### High-Level Flow
 
+**V2 Review (Current):**
 ```
-User → Review Form → POST /api/review → Orchestrator
-                                           ├── GitHub API (fetch PR)
-                                           ├── Jira API (fetch ticket)
-                                           ├── Claude API (AI review)
-                                           ├── Preview (user approval)
-                                           └── POST /api/review/submit
-                                                 ├── GitHub API (post comments)
-                                                 ├── Jira API (post comment)
-                                                 └── Storage (save review)
+User → /code-review-v2 → POST /api/reviews-v2
+                              ├── GitHub API (fetch PR + diff)
+                              ├── Jira API (fetch ticket + attachments)
+                              ├── Gemini Vision (analyze attachment images)
+                              ├── Claude/Gemini API (AI review)
+                              └── Storage (save to data/reviews-v2/)
+
+User → /code-review-v2/[id] → Diff viewer with inline editable comments
+                             → POST /api/reviews-v2/[id]/approve
+                                   ├── GitHub API (post inline comments)
+                                   ├── Jira API (post summary comment)
+                                   └── Storage (update record)
+```
+
+**V1 Review (Legacy):**
+```
+User → /review → POST /api/review
+                      ├── GitHub API (fetch PR)
+                      ├── Jira API (fetch ticket)
+                      ├── Claude/Gemini API (AI review)
+                      └── Preview dialog → POST /api/review/submit
+                                               ├── GitHub API (post comments)
+                                               ├── Jira API (post comment)
+                                               └── Storage (save to data/reviews/)
 ```
 
 ### Directory Structure
 
 ```
 src/
-├── app/                          # Next.js 16 App Router
-│   ├── layout.tsx               # Root layout with sidebar navigation
-│   ├── page.tsx                 # Redirects to /review
-│   ├── review/                  # Review page
-│   │   └── page.tsx            # Main review form
-│   ├── history/                 # History page
-│   │   └── page.tsx            # Review history table
-│   ├── tickets/                 # Ticket Management page
-│   │   └── page.tsx            # Epic/Story/List views for local Jira tickets
-│   └── api/                     # API Routes (serverless functions)
-│       ├── review/
-│       │   ├── route.ts        # Main orchestrator (preview mode)
-│       │   └── submit/
-│       │       └── route.ts    # Submit approved review
+├── app/                              # Next.js 16 App Router
+│   ├── layout.tsx                   # Root layout with sidebar navigation
+│   ├── providers.tsx                # MUI theme & emotion cache providers
+│   ├── page.tsx                     # Redirects to /code-review-v2
+│   ├── code-review-v2/              # V2 Review (current)
+│   │   ├── page.tsx                 # Review list page
+│   │   └── [id]/
+│   │       └── page.tsx             # Review detail with diff viewer
+│   ├── review/                      # V1 Review (legacy)
+│   │   └── page.tsx                 # Main review form
+│   ├── history/                     # Review history
+│   │   └── page.tsx                 # Review history table with filters
+│   ├── tickets/                     # Jira Ticket Manager
+│   │   ├── page.tsx                 # Epic/Story/List views
+│   │   └── [localId]/
+│   │       └── page.tsx             # Ticket detail page
+│   ├── how-it-works/                # Documentation page
+│   │   └── page.tsx
+│   └── api/                         # API Routes (serverless functions)
+│       ├── health/route.ts          # Health check endpoint
+│       ├── config/route.ts          # App config (has Jira/AI keys, etc.)
+│       ├── claude/route.ts          # Direct Claude API integration
 │       ├── github/
-│       │   └── pr/route.ts     # Fetch PR details
+│       │   ├── pr/route.ts          # Fetch GitHub PR details
+│       │   └── comment/route.ts     # Post comment to GitHub PR
 │       ├── jira/
-│       │   ├── ticket/route.ts # Fetch Jira ticket
-│       │   └── comment/route.ts # Post Jira comment
-│       ├── tickets/            # Local Ticket sync API
-│       │   ├── bulk-jira/route.ts  # Bulk Jira sync actions
-│       │   └── [localId]/jira/route.ts # Single ticket Jira sync
-│       ├── history/route.ts    # Get review history
-│       └── health/route.ts     # Health check endpoint
+│       │   ├── ticket/route.ts      # Fetch Jira ticket
+│       │   ├── comment/route.ts     # Post Jira comment
+│       │   └── attachments/[id]/route.ts  # Download Jira attachment
+│       ├── review/
+│       │   ├── route.ts             # V1: Orchestrator (preview mode)
+│       │   ├── submit/route.ts      # V1: Submit approved review
+│       │   └── [id]/files/[filename]/route.ts  # Serve review file artifacts
+│       ├── reviews-v2/
+│       │   ├── route.ts             # V2: Create / list reviews
+│       │   └── [id]/
+│       │       ├── route.ts         # V2: Get review detail
+│       │       └── approve/route.ts # V2: Approve & post to GitHub/Jira
+│       ├── history/route.ts         # Get V1 review history
+│       └── tickets/
+│           ├── route.ts             # List / create local tickets
+│           ├── sync-new/route.ts    # Sync new ticket from Jira ID
+│           ├── bulk-jira/route.ts   # Bulk Jira sync actions
+│           └── [localId]/
+│               ├── route.ts         # Get / update / delete ticket
+│               └── jira/route.ts    # Sync single ticket with Jira
 │
-├── components/                   # React Components
+├── components/                       # React Components
 │   ├── layout/
-│   │   └── Sidebar.tsx         # Navigation sidebar
-│   ├── review/
-│   │   ├── ReviewForm.tsx      # Main review form
-│   │   ├── ReviewProgress.tsx  # Progress tracker
-│   │   ├── ReviewPreviewDialog.tsx # Preview dialog
-│   │   └── ModelSelector.tsx   # AI model selector
-│   └── history/
-│       ├── HistoryTable.tsx    # MUI DataGrid table
-│       └── HistoryFilters.tsx  # Filter controls
+│   │   ├── Header.tsx               # Page header
+│   │   ├── MainLayout.tsx           # Main content wrapper
+│   │   └── Sidebar.tsx              # Navigation sidebar
+│   ├── review/                       # V1 review components
+│   │   ├── ReviewForm.tsx           # Main review form
+│   │   ├── ReviewProgress.tsx       # Progress tracker
+│   │   ├── ReviewPreviewDialog.tsx  # Preview & approval dialog
+│   │   └── ModelSelector.tsx        # AI model dropdown
+│   ├── review-v2/                    # V2 review components
+│   │   ├── CodeReviewV2List.tsx     # Review list page
+│   │   └── CodeReviewV2Detail.tsx   # Diff viewer with inline comments
+│   ├── history/
+│   │   ├── HistoryTable.tsx         # MUI DataGrid table
+│   │   └── HistoryFilters.tsx       # Filter controls
 │   └── tickets/
-│       ├── TicketsManager.tsx  # Main ticket collection UI
-│       ├── EpicGroupView.tsx   # Hierarchical epic display
-│       └── StoryView.tsx       # Detailed board style display
+│       ├── TicketsManager.tsx       # Main ticket UI container
+│       ├── EpicGroupView.tsx        # Hierarchical epic display
+│       ├── StoryView.tsx            # Board-style story display
+│       ├── TicketDetailDialog.tsx   # Ticket editor dialog
+│       ├── TicketFilters.tsx        # Search & filter controls
+│       └── ticketColors.ts          # Ticket status color constants
 │
-├── lib/                          # Business Logic Layer
-│   ├── api/                     # External API Clients
-│   │   ├── github.ts           # GitHub Octokit client
-│   │   ├── jira.ts             # Jira REST API client
-│   │   ├── claude.ts           # Anthropic SDK client
-│   │   └── gemini.ts           # Google Gemini client (optional)
+├── lib/                              # Business Logic Layer
+│   ├── api/                         # External API Clients
+│   │   ├── claude.ts               # Anthropic SDK client
+│   │   ├── gemini.ts               # Google Gemini client
+│   │   ├── gemini-vision.ts        # Gemini Vision for image analysis
+│   │   ├── github.ts               # GitHub Octokit client
+│   │   └── jira.ts                 # Jira REST API client
 │   ├── storage/
-│   │   ├── adapter.ts          # IStorageAdapter interface
-│   │   └── json-storage.ts     # JSON file implementation
+│   │   ├── index.ts                # Storage factory / exports
+│   │   ├── json-storage.ts         # V1 JSON file storage adapter
+│   │   ├── review-v2-storage.ts    # V2 review storage
+│   │   └── ticket-storage.ts       # Local ticket storage
 │   ├── logger/
-│   │   └── winston.ts          # Winston logger config
+│   │   └── winston.ts              # Winston logger configuration
 │   ├── utils/
-│   │   ├── env.ts              # Zod environment validation
-│   │   ├── retry.ts            # Exponential backoff retry
-│   │   ├── validation.ts       # Input validation helpers
-│   │   └── jira-extractor.ts   # Extract Jira ID from PR title
+│   │   ├── env.ts                  # Zod environment validation
+│   │   ├── retry.ts                # Exponential backoff retry
+│   │   ├── validation.ts           # Input validation helpers
+│   │   ├── diff.ts                 # Diff parsing utilities
+│   │   ├── date.ts                 # Date formatting utilities
+│   │   ├── image-extractor.ts      # Extract images from Jira attachments
+│   │   ├── knowledge.ts            # Knowledge base loader (data/knowledge.md)
+│   │   └── parsers.ts              # Parser utilities
 │   └── constants/
-│       ├── models.ts           # Available AI models
-│       ├── prompts.ts          # AI prompt templates
-│       └── regex.ts            # Regex patterns
+│       ├── models.ts               # Available AI models
+│       ├── prompts.ts              # AI prompt templates
+│       └── regex.ts                # Regex patterns
 │
-└── types/                        # TypeScript Type Definitions
-    ├── review.ts               # Review, ReviewComment types
-    ├── github.ts               # GitHub API types
-    ├── jira.ts                 # Jira API types
-    ├── claude.ts               # Claude API types
-    ├── ai.ts                   # Generic AI types
-    └── errors.ts               # Custom error classes
+└── types/                            # TypeScript Type Definitions
+    ├── review.ts                   # V1 Review, ReviewComment types
+    ├── review-v2.ts                # V2 ReviewV2Status, ReviewV2Detail types
+    ├── ai.ts                       # AIProvider, AIModel, AIReviewRequest/Response
+    ├── claude.ts                   # Claude-specific types
+    ├── github.ts                   # GitHub API types
+    ├── jira.ts                     # JiraTicket, JiraComment, JiraAttachment types
+    ├── ticket.ts                   # LocalTicket, TicketIndexEntry types
+    ├── storage.ts                  # IStorageAdapter, ReviewFilters, PaginatedReviews
+    └── errors.ts                   # Custom error classes
+```
+
+### Data Directory Structure
+
+```
+data/
+├── reviews/                         # V1 review records
+│   ├── all-reviews.json            # Index of all V1 reviews
+│   └── data/
+│       └── [uuid]/
+│           ├── item.json           # Review metadata
+│           ├── pr.json             # GitHub PR data snapshot
+│           ├── jira.json           # Jira ticket data (if any)
+│           ├── res-ai.json         # Raw AI response
+│           ├── prompt.txt          # Rendered review prompt
+│           ├── system-prompt.txt   # System prompt used
+│           ├── req-prompt.json     # Request details
+│           ├── image-descriptions.json  # Vision analysis results
+│           └── images/             # Cached Jira attachment images
+├── reviews-v2/                      # V2 review records
+│   ├── all-reviews.json            # Index of all V2 reviews
+│   └── data/
+│       └── [uuid]/
+│           └── item.json           # V2 review data
+├── jira-tickets/                    # Local Jira ticket cache
+│   ├── tickets.json                # Index of local tickets
+│   └── data/
+│       └── [uuid]/
+│           ├── item.json           # Ticket details
+│           └── attachments/        # Cached attachments
+└── knowledge.md                     # Domain knowledge injected into AI context
 ```
 
 ## Key Files Explained
 
-### API Route: `/api/review/route.ts`
+### API Route: `/api/reviews-v2/route.ts` (V2 Orchestrator)
 
-This is the **main orchestrator** that coordinates the entire review process:
+Creates a new V2 review:
 
 1. Validates input with Zod
-2. Checks for duplicate reviews (last 5 minutes)
+2. Fetches GitHub PR data and diff
+3. Fetches Jira ticket and attachments
+4. Uses Gemini Vision to analyze attachment images
+5. Loads `data/knowledge.md` for domain context
+6. Sends all context to Claude/Gemini for review
+7. Saves result to `data/reviews-v2/`
+
+### API Route: `/api/reviews-v2/[id]/approve/route.ts`
+
+Posts the approved V2 review:
+
+1. Reads saved V2 review from storage
+2. Posts inline comments to GitHub PR
+3. Posts summary comment to Jira ticket (if configured)
+4. Updates review record status
+
+### API Route: `/api/review/route.ts` (V1 Orchestrator — Legacy)
+
+1. Validates input with Zod
+2. Checks for duplicate reviews (configurable window)
 3. Fetches GitHub PR data
 4. Fetches Jira ticket (if provided/extracted)
-5. Sends to Claude AI for review
-6. Returns preview or posts comments
-7. Saves review to storage
+5. Sends to Claude/Gemini for review
+6. Returns preview for user approval
 
-**Important**: This endpoint supports `previewOnly: true` to show comments before posting.
+### Component: `review-v2/CodeReviewV2Detail.tsx`
 
-### API Route: `/api/review/submit/route.ts`
+V2 diff viewer with:
 
-Handles the **approval step** after preview:
+- GitHub-like side-by-side or unified diff rendering
+- Inline AI comments displayed below referenced lines
+- Code suggestion blocks with `+`/`-` formatting
+- Editable comment boxes before posting
 
-1. Posts approved comments to GitHub PR
-2. Posts summary to Jira ticket (if configured)
-3. Saves final review to storage
-
-### Component: `ReviewForm.tsx`
-
-Main review form with:
-
-- PR URL input (auto-fetches PR title)
-- Jira ticket ID input (auto-extraction from PR title)
-- Additional prompt input
-- Model selector
-- Progress tracker
-- Preview dialog integration
+### Component: `review/ReviewForm.tsx` (V1 — Legacy)
 
 **State Flow**:
-
 ```
 idle → fetching-github → fetching-jira → ai-review → approval → posting-comments → success
 ```
 
-### Clients: `lib/api/claude.ts` and `lib/api/gemini.ts`
+### AI Clients: `lib/api/claude.ts` and `lib/api/gemini.ts`
 
-**Claude AI client** (`claude.ts`):
-
-- Streaming support (currently unused)
-- Token counting
-- Error handling
-- Retry logic via `withRetry`
-
-**Gemini AI client** (`gemini.ts`):
-
-- JSON mode with structured output
-- Response truncation handling (for free tier)
-- Automatic salvage of incomplete JSON
-- Retry logic via `withRetry`
-
-**Key Method** (both): `reviewPR()` / `reviewPullRequest()`
-
-- Takes PR diff, files, Jira context
+Both implement `reviewPullRequest()`:
+- Takes PR diff, files, Jira context, knowledge base, and image descriptions
 - Returns structured review comments
-- Uses prompt from `lib/constants/prompts.ts`
+- Uses prompts from `lib/constants/prompts.ts`
+- Wrapped with retry logic via `withRetry`
 
-**Important**: Gemini free tier has stricter token limits (2048 recommended) to avoid response truncation.
+`lib/api/gemini-vision.ts` — analyzes Jira attachment images and returns text descriptions for inclusion in the review context.
 
-### Storage: `lib/storage/json-storage.ts`
+### Storage: `lib/storage/`
 
-JSON file-based storage implementing `IStorageAdapter`:
+| File | Purpose |
+|------|---------|
+| `index.ts` | Factory and export point |
+| `json-storage.ts` | V1 review storage (data/reviews/) |
+| `review-v2-storage.ts` | V2 review storage (data/reviews-v2/) |
+| `ticket-storage.ts` | Local ticket storage (data/jira-tickets/) |
 
-```typescript
-interface IStorageAdapter {
-  saveReview(review: ReviewRecord): Promise<void>;
-  getReviews(): Promise<ReviewRecord[]>;
-  getReviewById(id: string): Promise<ReviewRecord | null>;
-}
-```
+All storage implementations use the `IStorageAdapter` interface from `src/types/storage.ts`.
 
-**Files**:
+### Knowledge Base: `data/knowledge.md`
 
-- `data/reviews/{timestamp}-{prNumber}.json` - Individual reviews
-- `data/reviews/all-reviews.json` - Aggregated index
+A Markdown file with domain-specific context (business rules, tech conventions, etc.) loaded by `lib/utils/knowledge.ts` and injected into every AI review prompt for more informed, project-aware feedback.
 
 ### Validation: `lib/utils/env.ts`
 
-Zod schema for environment validation:
-
-- Runs at server startup
-- Throws error if required variables missing
-- Type-safe access via exported `env` object
+Zod schema validates all environment variables at server startup:
 
 ```typescript
 import { env } from '@/lib/utils/env';
@@ -211,7 +285,6 @@ const apiKey = env.ANTHROPIC_API_KEY; // Type-safe!
 
    ```typescript
    export const ALL_AI_MODELS: AIModel[] = [
-     // ... existing models
      {
        id: 'new-model-id',
        name: 'New Model Name',
@@ -223,128 +296,51 @@ const apiKey = env.ANTHROPIC_API_KEY; // Type-safe!
    ```
 
 2. **Update client**: `src/lib/api/claude.ts` or `gemini.ts`
-3. **Update types**: `src/types/ai.ts` if needed
-4. **Test**: Review form should show new model
+3. **Update types** if needed: `src/types/ai.ts`
 
-### Adding a New Review Step
+### Adding a New V2 Review Step
 
-1. **Update status type**: `src/types/review.ts`
-
-   ```typescript
-   export type ReviewStatus =
-     | 'idle'
-     | 'fetching-github'
-     | 'your-new-step'
-     | ...
-   ```
-
-2. **Update progress component**: `src/components/review/ReviewProgress.tsx`
-   - Add new step to `steps` array
-   - Add icon and description
-
-3. **Update orchestrator**: `src/app/api/review/route.ts`
-   - Add logic for new step
-   - Update response to include new step status
+1. **Update status type**: `src/types/review-v2.ts`
+2. **Update V2 orchestrator**: `src/app/api/reviews-v2/route.ts`
+3. **Update V2 detail component**: `src/components/review-v2/CodeReviewV2Detail.tsx`
 
 ### Modifying the AI Prompt
 
-1. **Edit prompt**: `src/lib/constants/prompts.ts`
+Edit `src/lib/constants/prompts.ts`. The prompt template receives:
+- PR diff and file list
+- Jira ticket summary, description, and acceptance criteria
+- Knowledge base content (`data/knowledge.md`)
+- Image descriptions from Jira attachments
 
-   ```typescript
-   export const REVIEW_PROMPT = `
-     Your updated instructions here...
-   `;
-   ```
+### Jira Ticket Standards (Local Data)
 
-2. **Test with real PR**: The prompt is injected in `lib/api/claude.ts`
+When creating or generating JSON tickets in `/data/jira-tickets/`, always sync both:
 
-### Adding Jira Custom Fields
+1. `data/jira-tickets/tickets.json` — index/summary list
+2. `data/jira-tickets/data/{localId}/item.json` — full ticket payload
+
+**UUIDv7 Standard**: The `localId` property **MUST** use UUIDv7 (time-based prefix for chronological sorting). Never use random UUIDv4.
+
+### Adding a New Jira Custom Field
 
 1. **Update Jira types**: `src/types/jira.ts`
-
-   ```typescript
-   export interface JiraTicket {
-     // ... existing fields
-     customField?: string;
-   }
-   ```
-
-2. **Update Jira client**: `src/lib/api/jira.ts`
-   - Modify `fetchTicket()` to extract custom field
-   - Map from Jira API response
-
-3. **Update prompt**: Include custom field in `prompts.ts`
-
-### Jira Ticket Standards & Formatting (Local Data)
-
-When manually creating or generating mock JSON tickets for the UI (stored in `/data/jira-tickets/`), you must strictly adhere to:
-
-1. **Dual-File Requirement**: Updates must be synchronized across:
-   - `data/jira-tickets/tickets.json` (Summary list)
-   - `data/jira-tickets/data/{localId}/item.json` (Detailed payload)
-2. **UUIDv7 Standard**: The `localId` property **MUST ALWAYS** be generated using the UUIDv7 specification. This includes a time-based prefix ensuring tickets are natively sorted chronologically. Do not use random UUIDv4.
+2. **Update Jira client**: `src/lib/api/jira.ts` — extract field in `fetchTicket()`
+3. **Update prompt**: Include field in `src/lib/constants/prompts.ts`
 
 ### Migrating to a Database
 
-1. **Create adapter**: `src/lib/storage/postgres-storage.ts`
-
-   ```typescript
-   export class PostgresStorageAdapter implements IStorageAdapter {
-     async saveReview(review: ReviewRecord): Promise<void> {
-       // Your DB logic
-     }
-     // ... implement other methods
-   }
-   ```
-
-2. **Update factory**: `src/lib/storage/adapter.ts` (if exists) or update imports
+1. **Create adapter**: `src/lib/storage/postgres-storage.ts` implementing `IStorageAdapter`
+2. **Register it**: `src/lib/storage/index.ts`
 3. **Set env**: `STORAGE_TYPE=postgres`
-4. **No changes needed** in API routes!
-
-## Working with Claude Code
-
-### Exploring the Codebase
-
-Ask Claude Code to:
-
-- "Show me how GitHub PR fetching works"
-- "Explain the review orchestration flow"
-- "Find all files related to Jira integration"
-- "Show me where AI prompts are defined"
-
-### Making Changes
-
-When asking Claude Code to make changes:
-
-- "Add error handling for rate limiting in GitHub client"
-- "Update the UI to show estimated review time"
-- "Add a new filter to the history page"
-- "Implement dark mode toggle"
-
-### Debugging
-
-Useful prompts:
-
-- "Why is the review stuck at 'fetching-jira' status?"
-- "Debug the duplicate review detection logic"
-- "Fix the type error in ReviewForm.tsx"
-- "Show me the logs for failed reviews"
-
-### Code Review
-
-Ask Claude Code to:
-
-- "Review my changes to the Claude client"
-- "Check if my new component follows the existing patterns"
-- "Suggest improvements for this API route"
+4. API routes need no changes — they use the adapter interface.
 
 ## Coding Conventions
 
 ### File Naming
 
 - **Components**: PascalCase (`ReviewForm.tsx`)
-- **Utilities**: camelCase (`retry.ts`, `jira-extractor.ts`)
-- **Types**: camelCase (`review.ts`, `github.ts`)
+- **Utilities**: camelCase (`retry.ts`, `diff.ts`)
+- **Types**: camelCase (`review.ts`, `ticket.ts`)
 - **API Routes**: kebab-case folders, `route.ts` files
 
 ### Import Order
@@ -367,13 +363,11 @@ import { ReviewProgress } from './ReviewProgress';
 ```typescript
 'use client'; // If using hooks
 
-import { ... } from '...';
-
 interface Props {
-  // Props interface
+  prop1: string;
 }
 
-export function ComponentName({ prop1, prop2 }: Props) {
+export function ComponentName({ prop1 }: Props) {
   // State
   const [state, setState] = useState();
 
@@ -395,20 +389,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger/winston';
 import { z } from 'zod';
 
-const requestSchema = z.object({
-  // Schema definition
-});
+const requestSchema = z.object({ ... });
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Parse and validate request
     const body = await request.json();
     const data = requestSchema.parse(body);
-
-    // 2. Business logic
     const result = await doSomething(data);
-
-    // 3. Return response
     return NextResponse.json({ success: true, data: result });
   } catch (error) {
     logger.error('Error message', { error });
@@ -421,58 +408,77 @@ export async function POST(request: NextRequest) {
 
 ### Required
 
-At least one AI provider is required:
-
 ```env
-# Option 1: Claude AI (Recommended for production)
-ANTHROPIC_API_KEY=sk-ant-...
-
-# Option 2: Google Gemini (Free tier available)
-GEMINI_API_KEY=...
-GEMINI_MAX_TOKENS=2048  # Important for free tier!
-
-# GitHub (Always required)
 GITHUB_TOKEN=ghp_...
+
+# At least one AI provider:
+ANTHROPIC_API_KEY=sk-ant-...
+GEMINI_API_KEY=...
 ```
 
-### Optional (Jira)
+### Optional — Jira Integration
 
 ```env
 JIRA_BASE_URL=https://company.atlassian.net
 JIRA_EMAIL=user@company.com
 JIRA_API_TOKEN=...
+JIRA_PROJECT_KEY=PROJ
+JIRA_STORY_POINTS_FIELD=customfield_10016
+JIRA_EPIC_LINK_FIELD=customfield_10014
 ```
 
-**Note**: If Jira variables are missing, Jira integration is silently skipped.
+> If Jira variables are missing, Jira integration is silently skipped.
 
-### Validation
+### Optional — AI Configuration
 
-All env vars are validated at startup via `src/lib/utils/env.ts` using Zod schemas.
+```env
+GEMINI_MAX_TOKENS=8192
+GEMINI_TEMPERATURE=0.3
+CLAUDE_MODEL_DEFAULT=claude-opus-4-6
+CLAUDE_MAX_TOKENS=8192
+CLAUDE_TEMPERATURE=0.3
+```
+
+### Optional — Storage & Logging
+
+```env
+DATA_DIR=./data/reviews
+REVIEW_V2_DATA_DIR=./data/reviews-v2
+TICKET_DATA_DIR=./data/jira-tickets
+LOG_DIR=./logs
+LOG_LEVEL=info
+```
+
+### Optional — Retry Configuration
+
+```env
+RETRY_MAX_ATTEMPTS=3
+RETRY_BASE_DELAY_MS=1000
+RETRY_MAX_DELAY_MS=10000
+DUPLICATE_CHECK_MINUTES=5
+```
 
 ## Testing
 
 ### Manual Testing
 
-1. **Set up test environment**:
+```bash
+cp .env.example .env
+# Fill in API keys
+npm run dev
+```
 
-   ```bash
-   cp .env.example .env
-   # Fill in real API keys
-   npm run dev
-   ```
+**Test V2 Review flow:**
+1. Go to http://localhost:3000/code-review-v2
+2. Enter a real GitHub PR URL and (optionally) a Jira ticket ID
+3. Click **Generate Review**
+4. Open the review and check inline comments in the diff viewer
+5. Click **Approve** and verify comments are posted to GitHub
 
-2. **Test review flow**:
-   - Go to http://localhost:3000
-   - Enter a real GitHub PR URL
-   - Add Jira ticket ID (optional)
-   - Click "Start Review"
-   - Verify preview shows
-   - Approve and verify comments posted
-
-3. **Test history**:
-   - Navigate to /history
-   - Verify reviews appear
-   - Test filters and search
+**Test Ticket Manager:**
+1. Go to http://localhost:3000/tickets
+2. Sync a ticket by Jira ID
+3. Edit offline, then Publish back to Jira
 
 ### Type Checking
 
@@ -490,187 +496,103 @@ npm run lint
 
 ### Gemini "Failed to parse JSON" Error
 
-**Problem**: Response truncation on Gemini free tier
+**Cause**: Response truncation on Gemini free tier.
 
-**Error Message**:
+**Fix**:
+1. Reduce max tokens in `.env`: `GEMINI_MAX_TOKENS=2048`
+2. The salvage logic in `src/lib/api/gemini.ts` auto-closes incomplete JSON
+3. Switch to Claude for large PRs: `ANTHROPIC_API_KEY=sk-ant-...`
+4. Debug: check `logs/combined.log` for the raw truncated response
 
+### Storage Setup Errors
+
+```bash
+mkdir -p data/reviews data/reviews-v2 data/jira-tickets logs
+echo "[]" > data/reviews/all-reviews.json
+echo "[]" > data/reviews-v2/all-reviews.json
+echo "[]" > data/jira-tickets/tickets.json
 ```
-Failed to parse Gemini response as JSON. Response may be truncated.
-```
-
-**Root Cause**: Gemini free tier has token limits that cause responses to be cut off mid-JSON.
-
-**Solution**:
-
-1. **Reduce max tokens** in `.env`:
-
-   ```env
-   GEMINI_MAX_TOKENS=2048  # Default, safe for free tier
-   # Or even lower for very large PRs:
-   GEMINI_MAX_TOKENS=1024
-   ```
-
-2. **Check the salvage logic** in `src/lib/api/gemini.ts`:
-   - Lines 86-142 handle truncated responses
-   - Automatically closes incomplete JSON structures
-   - Removes incomplete string fields
-
-3. **Alternative**: Use Claude AI for larger PRs
-
-   ```env
-   ANTHROPIC_API_KEY=sk-ant-your_key_here
-   ```
-
-4. **Debugging**: Check logs in `logs/combined.log` for the actual truncated response
 
 ### "Cannot find module '@/...'"
 
-This is a TypeScript path alias. Check `tsconfig.json`:
+TypeScript path alias issue. Check `tsconfig.json`:
 
 ```json
 {
   "compilerOptions": {
-    "paths": {
-      "@/*": ["./src/*"]
-    }
-  }
-}
-```
-
-### Zod Validation Errors
-
-Check the error output - Zod provides detailed field-level errors:
-
-```typescript
-try {
-  const data = schema.parse(input);
-} catch (error) {
-  if (error instanceof z.ZodError) {
-    console.log(error.flatten());
+    "paths": { "@/*": ["./src/*"] }
   }
 }
 ```
 
 ### Winston Logging Not Working
 
-Ensure `logs/` directory exists:
-
 ```bash
 mkdir -p logs
-```
-
-### Storage Errors
-
-Ensure data directory and initial file exist:
-
-```bash
-mkdir -p data/reviews
-echo "[]" > data/reviews/all-reviews.json
 ```
 
 ## API Integration Details
 
 ### GitHub API (Octokit)
 
-**Authentication**: Personal Access Token
-**Endpoints Used**:
+- `GET /repos/{owner}/{repo}/pulls/{number}` — PR details
+- `GET /repos/{owner}/{repo}/pulls/{number}/files` — Changed files with diffs
+- `POST /repos/{owner}/{repo}/pulls/{number}/comments` — Inline review comments
 
-- `GET /repos/{owner}/{repo}/pulls/{number}` - PR details
-- `GET /repos/{owner}/{repo}/pulls/{number}/files` - Changed files
-- `POST /repos/{owner}/{repo}/pulls/{number}/comments` - Inline comments
-
-**Rate Limits**: 5000 requests/hour (authenticated)
+Rate limit: 5000 requests/hour (authenticated)
 
 ### Jira REST API
 
-**Authentication**: Basic Auth (email + API token)
-**Endpoints Used**:
-
-- `GET /rest/api/3/issue/{issueKey}` - Ticket details
-- `POST /rest/api/3/issue/{issueKey}/comment` - Post comment
-
-**Note**: Uses Atlassian Document Format (ADF) for rich text
+- `GET /rest/api/3/issue/{issueKey}` — Ticket details
+- `GET /rest/api/3/issue/{issueKey}/attachments` — Attachments list
+- `POST /rest/api/3/issue/{issueKey}/comment` — Post comment (ADF format)
 
 ### Claude API (Anthropic)
 
-**Authentication**: API key (X-API-Key header)
-**Model**: Configurable (Opus 4, Sonnet 4, Haiku 4)
-**Features Used**:
+- Model: Configurable (default `claude-opus-4-6`)
+- Features: Messages API, system prompts, JSON-structured output
 
-- Messages API (non-streaming)
-- System prompts
-- JSON mode (for structured output)
+### Google Gemini API
+
+- Models: Gemini Pro, Flash (configurable)
+- Features: JSON mode, Vision (image analysis via `gemini-vision.ts`)
 
 ## Performance Considerations
 
-### API Timeouts
+### API Timeouts & Retry
 
-All external API calls use `withRetry()` wrapper:
-
-- Max 3 attempts (configurable)
-- Exponential backoff
-- 1s base delay, 10s max delay
+All external API calls use `withRetry()` (exponential backoff, configurable via env).
 
 ### Large PRs
 
-Claude has token limits:
+Claude token limits:
+- Opus 4.6 / Sonnet 4.6: 200K input, 16K output
+- Haiku 4.5: 200K input, 8K output
 
-- Opus 4: 200K input, 16K output
-- Sonnet 4: 200K input, 16K output
-- Haiku 4: 200K input, 8K output
-
-For very large diffs, truncation may be needed (not currently implemented).
+For very large diffs, the prompt may need truncation (not auto-implemented; consider reducing PR scope or switching models).
 
 ### Storage Performance
 
-JSON storage is simple but not scalable:
-
+JSON storage is simple but not designed for scale:
 - All reviews loaded into memory for `/api/history`
-- No indexing or querying capabilities
-- Consider database migration for >10K reviews
+- Consider a database adapter for >10K reviews
 
 ## Security Considerations
 
-### API Keys
-
-- Never commit `.env` file
-- API keys are server-side only (not exposed to client)
-- Use environment variables only
-
-### Input Validation
-
+- Never commit `.env` — all API keys are server-side only
 - All user inputs validated with Zod schemas
-- PR URLs validated with regex
-- Sanitization for GitHub/Jira API calls
-
-### Error Messages
-
-- Generic errors shown to users
-- Detailed errors logged server-side
-- No sensitive data in client-facing errors
+- PR URLs validated with regex before API calls
+- Generic error messages shown to users; full errors logged server-side
 
 ## Deployment
-
-### Docker Production
 
 ```bash
 docker-compose up -d
 ```
 
-Includes:
-
-- Health checks at `/api/health`
-- Automatic restart on failure
-- Volume-mounted persistence
-- Production build optimization
-
-### Environment
-
-Ensure all environment variables set in production:
-
-- Use secrets management (AWS Secrets Manager, etc.)
-- Never expose API keys in client-side code
-- Set `NODE_ENV=production`
+- Health check: `GET /api/health`
+- Port: `8082` (mapped to container port `3000`)
+- Volumes: `./data` and `./logs` are mounted for persistence
 
 ## Additional Resources
 
@@ -684,38 +606,34 @@ Ensure all environment variables set in production:
 
 ### Internal Documentation
 
-- [README.md](./README.md) - Main project documentation
-- [GETTING_STARTED.md](./GETTING_STARTED.md) - Setup guide
-- [UI_IMPROVEMENTS.md](./UI_IMPROVEMENTS.md) - UI/UX details
-
-## Tips for Claude Code Users
-
-1. **Ask for context**: "Explain how [feature] works in this codebase"
-2. **Request specific files**: "Show me the GitHub client implementation"
-3. **Get architectural guidance**: "What's the best way to add [feature]?"
-4. **Debug with context**: "This error occurs when [scenario], help me debug"
-5. **Code review**: "Review my changes to [file] for bugs and improvements"
+- [README.md](./README.md) — Main project documentation
+- [docs/CLAUDE_API_SETUP.md](./docs/CLAUDE_API_SETUP.md) — Claude API setup
+- [docs/GEMINI_API_SETUP.md](./docs/GEMINI_API_SETUP.md) — Gemini API setup
+- [docs/GITHUB_API_SETUP.md](./docs/GITHUB_API_SETUP.md) — GitHub token setup
+- [docs/JIRA_API_SETUP.md](./docs/JIRA_API_SETUP.md) — Jira token setup
 
 ## Common Questions
 
 ### Q: How do I add support for GitLab?
 
-A: Create `src/lib/api/gitlab.ts` similar to `github.ts`, update types, and modify the orchestrator to support both platforms.
+A: Create `src/lib/api/gitlab.ts` similar to `github.ts`, update types in `src/types/github.ts`, and modify the V2 orchestrator (`/api/reviews-v2/route.ts`) to detect and route accordingly.
 
 ### Q: Can I use a different AI provider?
 
-A: Yes! Implement a new client in `src/lib/api/`, add models to `constants/models.ts`, and update the review orchestrator to route to the correct provider.
+A: Yes. Implement a client in `src/lib/api/`, add models to `constants/models.ts`, update `src/types/ai.ts` if needed, and route to it in the review orchestrator.
 
 ### Q: How do I customize the review criteria?
 
-A: Edit `src/lib/constants/prompts.ts` to modify what Claude looks for in code reviews.
+A: Edit `src/lib/constants/prompts.ts`. You can also add domain knowledge to `data/knowledge.md` — it is automatically injected into every review.
 
 ### Q: Can I run this without Jira?
 
-A: Yes! Jira is optional. If Jira env variables are not set, the Jira integration is automatically skipped.
+A: Yes. If Jira env variables are absent, Jira integration is silently skipped in both V1 and V2 flows.
+
+### Q: What is `data/knowledge.md` for?
+
+A: It is a free-form Markdown file (business rules, tech conventions, architecture notes) that is loaded and appended to the AI review prompt, giving the AI project-specific context for better, more relevant feedback.
 
 ---
 
 **Happy coding with Claude Code!**
-
-For questions or issues, check the main [README.md](./README.md) or open an issue on GitHub.
