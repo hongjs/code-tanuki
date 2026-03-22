@@ -23,6 +23,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import TipsAndUpdatesIcon from '@mui/icons-material/TipsAndUpdates';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import ArticleIcon from '@mui/icons-material/Article';
+import ApiIcon from '@mui/icons-material/Api';
 import { useState } from 'react';
 
 const drawerWidth = 280;
@@ -60,6 +61,12 @@ const supportMenuItems = [
     icon: <TipsAndUpdatesIcon />,
     path: '/how-it-works',
     gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+  },
+  {
+    text: 'API Docs',
+    icon: <ApiIcon />,
+    path: '/api-docs',
+    gradient: 'linear-gradient(135deg, #f7971e 0%, #ffd200 100%)',
   },
 ];
 
