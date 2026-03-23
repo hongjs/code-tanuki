@@ -6,18 +6,19 @@ services:
     container_name: code-tanuki
     ports:
       - '8082:3000'
-      - '8083:3083'
+      - '8083:3001'
+    env_file:
+      - .env.local
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - MCP_PORT=3083
-      - CODE_TANUKI_BASE_URL=http://localhost:3000
+      - HOSTNAME=0.0.0.0
+      - MCP_PORT=3001
+      - CODE_TANUKI_BASE_URL=http://127.0.0.1:3000
       - DATA_DIR=/data/reviews
       - REVIEW_V2_DATA_DIR=/data/reviews-v2
       - TICKET_DATA_DIR=/data/jira-tickets
       - LOG_DIR=/logs
-    env_file:
-      - .env.local
     volumes:
       - ./data:/data
       - ./logs:/logs

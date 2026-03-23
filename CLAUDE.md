@@ -16,6 +16,8 @@ Code-Tanuki is an AI-powered code review and Jira assistant built with Next.js 1
 - **Storage**: JSON files with abstraction layer
 - **Logging**: Winston
 - **Validation**: Zod schemas
+- **MCP Server**: Streamable HTTP transport (`mcp/index.ts`), port 3001 (local) / 8083 (Docker)
+- **OpenAPI**: Zod-to-OpenAPI, spec at `docs/swagger.yaml`, UI at `/swagger`
 
 ## Architecture
 
@@ -71,6 +73,9 @@ src/
 │   │       └── page.tsx             # Ticket detail page
 │   ├── how-it-works/                # Documentation page
 │   │   └── page.tsx
+│   ├── swagger/                     # Swagger UI page
+│   │   ├── page.tsx                 # Renders SwaggerUIComponent
+│   │   └── SwaggerUIComponent.tsx   # Client component wrapping swagger-ui-react
 │   └── api/                         # API Routes (serverless functions)
 │       ├── health/route.ts          # Health check endpoint
 │       ├── config/route.ts          # App config (has Jira/AI keys, etc.)
@@ -96,6 +101,7 @@ src/
 │           ├── route.ts             # List / create local tickets
 │           ├── sync-new/route.ts    # Sync new ticket from Jira ID
 │           ├── bulk-jira/route.ts   # Bulk Jira sync actions
+│           ├── swagger/route.ts     # Serve docs/swagger.yaml as JSON
 │           └── [localId]/
 │               ├── route.ts         # Get / update / delete ticket
 │               └── jira/route.ts    # Sync single ticket with Jira
@@ -277,6 +283,51 @@ import { env } from '@/lib/utils/env';
 const apiKey = env.ANTHROPIC_API_KEY; // Type-safe!
 ```
 
+### MCP Server: `mcp/index.ts`
+
+A standalone [Model Context Protocol](https://modelcontextprotocol.io/) server over **Streamable HTTP** transport. Each incoming POST to `/mcp` initialises a new session; subsequent requests reuse the session via `mcp-session-id` header.
+
+**Registered tools** (all backed by `/api/tickets/*`):
+
+| Tool | Endpoint |
+|------|----------|
+| `list_tickets` | `GET /api/tickets` |
+| `get_ticket` | `GET /api/tickets/:localId` |
+| `create_ticket` | `POST /api/tickets` |
+| `update_ticket` | `PUT /api/tickets/:localId` |
+| `delete_ticket` | `DELETE /api/tickets/:localId` |
+| `sync_ticket_from_jira` | `POST /api/tickets/sync-new` |
+| `push_ticket_to_jira` | `POST /api/tickets/:localId/jira` |
+| `update_ticket_on_jira` | `PATCH /api/tickets/:localId/jira` |
+| `refresh_ticket_from_jira` | `GET /api/tickets/:localId/jira` |
+
+**Environment variables**:
+- `MCP_PORT` — HTTP port (default `3001`)
+- `CODE_TANUKI_BASE_URL` — base URL of the web app (default `http://localhost:8082`)
+
+**Running locally**: `yarn mcp`
+**Docker**: starts automatically on port `3083` via `docker-entrypoint.sh`
+
+**Add to Claude Code**:
+```bash
+claude mcp add --transport http code-tanuki-tickets http://localhost:3001/mcp
+```
+
+### OpenAPI / Swagger
+
+**Spec file**: `docs/swagger.yaml` — generated from Zod schemas in `src/lib/schemas/ticket-schemas.ts` using `@asteasolutions/zod-to-openapi`.
+
+**Regenerate**:
+```bash
+yarn swagger   # runs scripts/gen-swagger.ts → writes docs/swagger.yaml
+```
+
+**Serve**: `GET /api/swagger` reads `docs/swagger.yaml` and returns it as JSON for the Swagger UI.
+
+**Swagger UI**: available at `http://localhost:3000/swagger` (rendered by `src/app/swagger/SwaggerUIComponent.tsx`).
+
+When adding new API endpoints with Zod request/response schemas, register them in `scripts/gen-swagger.ts` and re-run `yarn swagger` to keep the spec in sync.
+
 ## Common Development Tasks
 
 ### Adding a New AI Model
@@ -326,6 +377,20 @@ When creating or generating JSON tickets in `/data/jira-tickets/`, always sync b
 1. **Update Jira types**: `src/types/jira.ts`
 2. **Update Jira client**: `src/lib/api/jira.ts` — extract field in `fetchTicket()`
 3. **Update prompt**: Include field in `src/lib/constants/prompts.ts`
+
+### Adding a New MCP Tool
+
+1. Open `mcp/index.ts`
+2. Call `server.registerTool(name, { description, inputSchema }, handler)` inside `createMcpServer()`
+3. The handler should call `apiFetch()` pointing to the relevant API route
+4. Restart `yarn mcp` — no rebuild needed
+
+### Adding a New API Endpoint to the OpenAPI Spec
+
+1. Define request/response Zod schemas in `src/lib/schemas/`
+2. Register the path in `scripts/gen-swagger.ts` using `registry.registerPath()`
+3. Run `yarn swagger` to regenerate `docs/swagger.yaml`
+4. The Swagger UI at `/swagger` will reflect the update automatically
 
 ### Migrating to a Database
 
@@ -480,16 +545,25 @@ npm run dev
 2. Sync a ticket by Jira ID
 3. Edit offline, then Publish back to Jira
 
+**Test MCP Server:**
+1. Run `yarn mcp` in a separate terminal (requires `yarn dev` to be running)
+2. Connect with `claude mcp add --transport http code-tanuki-tickets http://localhost:3001/mcp`
+3. Ask Claude to `list_tickets` or `create_ticket` to verify tools work
+
+**Test Swagger UI:**
+1. Run `yarn swagger` to regenerate `docs/swagger.yaml`
+2. Go to http://localhost:3000/swagger to verify the UI renders
+
 ### Type Checking
 
 ```bash
-npm run type-check
+yarn type-check
 ```
 
 ### Linting
 
 ```bash
-npm run lint
+yarn lint
 ```
 
 ## Troubleshooting

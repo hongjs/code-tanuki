@@ -1,9 +1,10 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createServer } from 'http';
+import { randomUUID } from 'crypto';
 import { z } from 'zod';
 
-const BASE_URL = process.env.CODE_TANUKI_BASE_URL ?? 'http://localhost:8082';
+const BASE_URL = process.env.CODE_TANUKI_BASE_URL ?? 'http://127.0.0.1:3000';
 const PORT = parseInt(process.env.MCP_PORT ?? '3001', 10);
 
 async function apiFetch(path: string, options?: RequestInit): Promise<unknown> {
@@ -209,26 +210,35 @@ function createMcpServer(): McpServer {
   return server;
 }
 
-// ── HTTP / SSE server ──────────────────────────────────────────────────────
-const transports = new Map<string, SSEServerTransport>();
+// ── HTTP / Streamable HTTP server ──────────────────────────────────────────
+const sessions = new Map<string, { transport: StreamableHTTPServerTransport; server: McpServer }>();
 
 const httpServer = createServer(async (req, res) => {
-  if (req.method === 'GET' && req.url === '/sse') {
-    const transport = new SSEServerTransport('/messages', res);
-    transports.set(transport.sessionId, transport);
-    transport.onclose = () => transports.delete(transport.sessionId);
+  if (req.url === '/mcp') {
+    const sessionId = req.headers['mcp-session-id'] as string | undefined;
 
-    const server = createMcpServer();
-    await server.connect(transport);
-  } else if (req.method === 'POST' && req.url?.startsWith('/messages')) {
-    const url = new URL(req.url, `http://localhost:${PORT}`);
-    const sessionId = url.searchParams.get('sessionId');
-    const transport = sessionId ? transports.get(sessionId) : undefined;
-    if (transport) {
-      await transport.handlePostMessage(req, res);
+    if (req.method === 'POST' && !sessionId) {
+      // New session — initialisation request
+      const transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: () => randomUUID(),
+      });
+      const server = createMcpServer();
+      transport.onclose = () => sessions.delete(transport.sessionId!);
+      await server.connect(transport);
+      await transport.handleRequest(req, res);
+      if (transport.sessionId) sessions.set(transport.sessionId, { transport, server });
+    } else if (sessionId && sessions.has(sessionId)) {
+      // Existing session
+      await sessions.get(sessionId)!.transport.handleRequest(req, res);
+    } else if (req.method === 'GET') {
+      // Stateless GET (health / capability probe)
+      const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+      const server = createMcpServer();
+      await server.connect(transport);
+      await transport.handleRequest(req, res);
     } else {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Session not found' }));
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Bad request or unknown session' }));
     }
   } else {
     res.writeHead(404, { 'Content-Type': 'application/json' });
@@ -238,8 +248,8 @@ const httpServer = createServer(async (req, res) => {
 
 httpServer.listen(PORT, () => {
   process.stderr.write(
-    `[code-tanuki-mcp] SSE server started\n` +
-    `  SSE endpoint : http://localhost:${PORT}/sse\n` +
-    `  BASE_URL     : ${BASE_URL}\n`
+    `[code-tanuki-mcp] Streamable HTTP server started\n` +
+      `  MCP endpoint : http://127.0.0.1:${PORT}/mcp\n` +
+      `  BASE_URL     : ${BASE_URL}\n`
   );
 });

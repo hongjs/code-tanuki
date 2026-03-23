@@ -14,7 +14,7 @@
     "swagger": "tsx scripts/gen-swagger.ts",
     "mcp": "tsx mcp/index.ts",
     "docker:build": "docker build -t code-tanuki:latest .",
-    "docker:run": "docker run -p 8082:3000 -d --name code-tanuki --env-file .env.local -e DATA_DIR=/data/reviews -e REVIEW_V2_DATA_DIR=/data/reviews-v2 -e TICKET_DATA_DIR=/data/jira-tickets -e LOG_DIR=/logs -v $(pwd)/data:/data -v $(pwd)/logs:/logs code-tanuki:latest",
+    "docker:run": "docker run -p 8082:3000 -p 8083:3083 -d --name code-tanuki --env-file .env.local -e DATA_DIR=/data/reviews -e REVIEW_V2_DATA_DIR=/data/reviews-v2 -e TICKET_DATA_DIR=/data/jira-tickets -e LOG_DIR=/logs -e MCP_PORT=3083 -e CODE_TANUKI_BASE_URL=http://localhost:3000 -v $(pwd)/data:/data -v $(pwd)/logs:/logs code-tanuki:latest",
     "docker:compose:up": "docker compose up -d"
   },
   "dependencies": {

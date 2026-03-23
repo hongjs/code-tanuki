@@ -32,7 +32,7 @@ WORKDIR /app
 # Set environment
 ENV NODE_ENV=production
 ENV PORT=3000
-ENV MCP_PORT=3083
+ENV MCP_PORT=3001
 ENV CODE_TANUKI_BASE_URL=http://localhost:3000
 
 # Create data and logs directories and ensure proper permissions
@@ -56,7 +56,7 @@ COPY --from=builder --chown=node:node /app/mcp-dist ./mcp-dist
 COPY --chown=node:node docker-entrypoint.sh ./docker-entrypoint.sh
 
 # Expose ports: 3000 = web, 3083 = MCP SSE
-EXPOSE 3000 3083
+EXPOSE 3000 3001
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
