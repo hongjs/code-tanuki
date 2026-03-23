@@ -21,6 +21,9 @@ RUN GITHUB_TOKEN=dummy \
     ANTHROPIC_API_KEY=dummy \
     yarn build
 
+# Bundle MCP server into a single JS file
+RUN npx esbuild mcp/index.ts --bundle --platform=node --format=cjs --outfile=mcp-dist/server.js
+
 # Production stage
 FROM node:24-alpine AS runner
 
@@ -29,6 +32,8 @@ WORKDIR /app
 # Set environment
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV MCP_PORT=3001
+ENV CODE_TANUKI_BASE_URL=http://localhost:3000
 
 # Create data and logs directories and ensure proper permissions
 # Using .next/cache to prevent permission issues during standalone run
@@ -44,12 +49,18 @@ USER node
 COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
 
-# Expose port
-EXPOSE 3000
+# Copy MCP server bundle
+COPY --from=builder --chown=node:node /app/mcp-dist ./mcp-dist
+
+# Copy entrypoint script
+COPY --chown=node:node docker-entrypoint.sh ./docker-entrypoint.sh
+
+# Expose ports: 3000 = web, 3083 = MCP SSE
+EXPOSE 3000 3001
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
 
-# Start the application using standalone server
-CMD ["node", "server.js"]
+# Start both web and MCP servers via entrypoint
+CMD ["/bin/sh", "/app/docker-entrypoint.sh"]

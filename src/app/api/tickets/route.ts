@@ -4,21 +4,7 @@ import { z } from 'zod';
 import { ticketStorage } from '@/lib/storage/ticket-storage';
 import { logger } from '@/lib/logger/winston';
 import { LocalTicket, TicketType } from '@/types/ticket';
-
-const ticketTypeValues: [TicketType, ...TicketType[]] = ['Epic', 'Story', 'Task', 'Sub-task', 'Bug'];
-
-const createTicketSchema = z.object({
-  title: z.string().min(1),
-  description: z.string().optional(),
-  type: z.enum(ticketTypeValues),
-  status: z.string().default('To Do'),
-  priority: z.string().optional(),
-  storyPoints: z.number().optional(),
-  assignee: z.string().optional(),
-  parentKey: z.string().optional(),
-  subtaskKeys: z.array(z.string()).optional(),
-  labels: z.array(z.string()).optional(),
-});
+import { createTicketSchema } from '@/lib/schemas/ticket-schemas';
 
 export async function GET(request: NextRequest) {
   try {

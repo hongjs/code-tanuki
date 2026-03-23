@@ -3,7 +3,6 @@
 import {
   Box,
   Typography,
-  Paper,
   Container,
   Grid,
   Step,
@@ -80,7 +79,7 @@ export default function HowItWorksPage() {
           {/* Left Side: Vertical Stepper */}
           <Grid size={{ xs: 12, md: 6 }}>
             <Stepper orientation="vertical">
-              {steps.map((step, index) => (
+              {steps.map((step, _index) => (
                 <Step key={step.label} active expanded>
                   <StepLabel
                     StepIconComponent={() => (
@@ -170,7 +169,7 @@ export default function HowItWorksPage() {
                 }}
               >
                 <Typography variant="body1" sx={{ fontStyle: 'italic', mb: 1, opacity: 0.9 }}>
-                  "Code Tanuki catches the bugs I miss when I'm tired."
+                  &quot;Code Tanuki catches the bugs I miss when I&apos;m tired.&quot;
                 </Typography>
                 <Typography variant="caption" sx={{ opacity: 0.6 }}>
                   — Every Developer Ever

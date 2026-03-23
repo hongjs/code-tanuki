@@ -1,0 +1,531 @@
+openapi: 3.0.3
+info:
+  title: Code Tanuki — Ticket API
+  version: 1.0.0
+  description: Local Jira ticket management API for Code Tanuki. All endpoints are relative to the running Next.js server.
+servers:
+  - url: http://localhost:3000
+    description: Dev (next dev)
+  - url: http://localhost:8082
+    description: Docker
+components:
+  schemas:
+    Ticket:
+      type: object
+      properties:
+        localId:
+          type: string
+          format: uuid
+          description: UUIDv7 local identifier
+        jiraKey:
+          type: string
+          nullable: true
+          example: PROJ-123
+          description: Null until pushed to Jira
+        title:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum:
+            - Epic
+            - Story
+            - Task
+            - Sub-task
+            - Bug
+          description: Ticket type
+        status:
+          type: string
+          example: To Do
+        priority:
+          type: string
+        storyPoints:
+          type: number
+        assignee:
+          type: string
+        parentKey:
+          type: string
+          nullable: true
+        subtaskKeys:
+          type: array
+          items:
+            type: string
+        labels:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        syncedAt:
+          type: string
+          nullable: true
+          format: date-time
+      required:
+        - localId
+        - jiraKey
+        - title
+        - type
+        - status
+        - createdAt
+        - updatedAt
+    TicketIndexEntry:
+      type: object
+      properties:
+        localId:
+          type: string
+          format: uuid
+        jiraKey:
+          type: string
+          nullable: true
+        title:
+          type: string
+        type:
+          type: string
+          enum:
+            - Epic
+            - Story
+            - Task
+            - Sub-task
+            - Bug
+          description: Ticket type
+        status:
+          type: string
+        parentKey:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        syncedAt:
+          type: string
+          nullable: true
+          format: date-time
+      required:
+        - localId
+        - jiraKey
+        - title
+        - type
+        - status
+        - createdAt
+        - updatedAt
+    CreateTicketRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          example: Add user authentication
+        description:
+          type: string
+          description: Markdown body
+        type:
+          type: string
+          enum:
+            - Epic
+            - Story
+            - Task
+            - Sub-task
+            - Bug
+          description: Ticket type
+        status:
+          type: string
+          default: To Do
+          example: To Do
+        priority:
+          type: string
+          example: Medium
+        storyPoints:
+          type: number
+          example: 3
+        assignee:
+          type: string
+        parentKey:
+          type: string
+          example: PROJ-10
+        subtaskKeys:
+          type: array
+          items:
+            type: string
+        labels:
+          type: array
+          items:
+            type: string
+      required:
+        - title
+        - type
+    UpdateTicketRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        type:
+          type: string
+          enum:
+            - Epic
+            - Story
+            - Task
+            - Sub-task
+            - Bug
+          description: Ticket type
+        status:
+          type: string
+        priority:
+          type: string
+        storyPoints:
+          type: number
+        assignee:
+          type: string
+        parentKey:
+          type: string
+        subtaskKeys:
+          type: array
+          items:
+            type: string
+        labels:
+          type: array
+          items:
+            type: string
+    SyncFromJiraRequest:
+      type: object
+      properties:
+        jiraKey:
+          type: string
+          example: PROJ-123
+          description: Jira issue key
+      required:
+        - jiraKey
+    BulkJiraRequest:
+      type: object
+      properties:
+        jiraKeys:
+          type: array
+          items:
+            type: string
+          description: Jira issue keys to sync
+      required:
+        - jiraKeys
+  parameters: {}
+paths:
+  /api/tickets:
+    get:
+      tags:
+        - tickets
+      summary: List local tickets
+      operationId: listTickets
+      parameters:
+        - schema:
+            type: string
+            description: Free-text search on title
+          required: false
+          description: Free-text search on title
+          name: search
+          in: query
+        - schema:
+            type: string
+            enum:
+              - Epic
+              - Story
+              - Task
+              - Sub-task
+              - Bug
+          required: false
+          name: type
+          in: query
+        - schema:
+            type: string
+            description: e.g. "To Do", "In Progress", "Done"
+          required: false
+          description: e.g. "To Do", "In Progress", "Done"
+          name: status
+          in: query
+      responses:
+        '200':
+          description: Array of ticket index entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tickets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TicketIndexEntry'
+                required:
+                  - tickets
+        '500':
+          description: Server error
+    post:
+      tags:
+        - tickets
+      summary: Create a local ticket
+      operationId: createTicket
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTicketRequest'
+      responses:
+        '201':
+          description: Created ticket
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ticket:
+                    $ref: '#/components/schemas/Ticket'
+                required:
+                  - ticket
+        '400':
+          description: Validation error
+        '500':
+          description: Server error
+  /api/tickets/sync-new:
+    post:
+      tags:
+        - jira-sync
+      summary: Sync a ticket from Jira
+      description: Fetches the Jira issue and saves it locally. Updates the record if the jiraKey already exists.
+      operationId: syncTicketFromJira
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncFromJiraRequest'
+      responses:
+        '201':
+          description: Synced ticket
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ticket:
+                    $ref: '#/components/schemas/Ticket'
+                required:
+                  - ticket
+        '400':
+          description: Missing jiraKey
+        '404':
+          description: Jira ticket not found
+        '500':
+          description: Server error
+  /api/tickets/bulk-jira:
+    post:
+      tags:
+        - jira-sync
+      summary: Bulk Jira sync
+      operationId: bulkJiraSync
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkJiraRequest'
+      responses:
+        '200':
+          description: Bulk operation result
+        '500':
+          description: Server error
+  /api/tickets/{localId}:
+    get:
+      tags:
+        - tickets
+      summary: Get ticket detail
+      operationId: getTicket
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+          required: true
+          name: localId
+          in: path
+      responses:
+        '200':
+          description: Ticket detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ticket:
+                    $ref: '#/components/schemas/Ticket'
+                required:
+                  - ticket
+        '404':
+          description: Not found
+        '500':
+          description: Server error
+    put:
+      tags:
+        - tickets
+      summary: Update a local ticket
+      operationId: updateTicket
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+          required: true
+          name: localId
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTicketRequest'
+      responses:
+        '200':
+          description: Updated ticket
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ticket:
+                    $ref: '#/components/schemas/Ticket'
+                required:
+                  - ticket
+        '400':
+          description: Validation error
+        '404':
+          description: Not found
+        '500':
+          description: Server error
+    delete:
+      tags:
+        - tickets
+      summary: Delete a local ticket
+      operationId: deleteTicket
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+          required: true
+          name: localId
+          in: path
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                required:
+                  - success
+        '404':
+          description: Not found
+        '500':
+          description: Server error
+  /api/tickets/{localId}/jira:
+    post:
+      tags:
+        - jira-sync
+      summary: Push ticket to Jira (create)
+      description: Creates the local ticket as a new Jira issue and stores the returned jiraKey.
+      operationId: pushTicketToJira
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+          required: true
+          name: localId
+          in: path
+      responses:
+        '200':
+          description: Created on Jira
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jiraKey:
+                    type: string
+                  ticket:
+                    $ref: '#/components/schemas/Ticket'
+                required:
+                  - jiraKey
+                  - ticket
+        '404':
+          description: Local ticket not found
+        '409':
+          description: Already exists on Jira
+        '500':
+          description: Server error
+    patch:
+      tags:
+        - jira-sync
+      summary: Update ticket on Jira
+      description: Pushes local changes to the existing Jira issue.
+      operationId: updateTicketOnJira
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+          required: true
+          name: localId
+          in: path
+      responses:
+        '200':
+          description: Updated on Jira
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  ticket:
+                    $ref: '#/components/schemas/Ticket'
+                required:
+                  - success
+                  - ticket
+        '400':
+          description: No jiraKey on local ticket
+        '404':
+          description: Local ticket not found
+        '500':
+          description: Server error
+    get:
+      tags:
+        - jira-sync
+      summary: Refresh ticket from Jira
+      description: Pulls the latest data from Jira and updates the local record.
+      operationId: refreshTicketFromJira
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+          required: true
+          name: localId
+          in: path
+      responses:
+        '200':
+          description: Refreshed ticket
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ticket:
+                    $ref: '#/components/schemas/Ticket'
+                required:
+                  - ticket
+        '400':
+          description: No jiraKey on local ticket
+        '404':
+          description: Local ticket not found
+        '500':
+          description: Server error

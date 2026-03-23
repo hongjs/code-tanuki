@@ -3,21 +3,7 @@ import { z } from 'zod';
 import { ticketStorage } from '@/lib/storage/ticket-storage';
 import { logger } from '@/lib/logger/winston';
 import { TicketType } from '@/types/ticket';
-
-const ticketTypeValues: [TicketType, ...TicketType[]] = ['Epic', 'Story', 'Task', 'Sub-task', 'Bug'];
-
-const updateTicketSchema = z.object({
-  title: z.string().min(1).optional(),
-  description: z.string().optional(),
-  type: z.enum(ticketTypeValues).optional(),
-  status: z.string().optional(),
-  priority: z.string().optional(),
-  storyPoints: z.number().optional(),
-  assignee: z.string().optional(),
-  parentKey: z.string().optional(),
-  subtaskKeys: z.array(z.string()).optional(),
-  labels: z.array(z.string()).optional(),
-});
+import { updateTicketSchema } from '@/lib/schemas/ticket-schemas';
 
 interface RouteParams {
   params: Promise<{ localId: string }>;

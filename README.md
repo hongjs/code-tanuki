@@ -31,6 +31,8 @@ Code-Tanuki is an AI-powered development assistant designed for software teams. 
 - **GitHub Integration** - Automatic PR fetching and inline comment posting.
 - **Contextual Validation** - Uses Jira ticket context to validate code against acceptance criteria.
 - **Knowledge Base** - Provide a `data/knowledge.md` file for domain-specific context injected into AI reviews.
+- **MCP Server** - Expose Jira ticket tools via Model Context Protocol (SSE transport) for AI agent integration.
+- **OpenAPI / Swagger UI** - Auto-generated API docs available at `/swagger`.
 - **Legacy Code Review (V1)** - Simple list-based review preview dialog (available alongside V2).
 - **Review History** - Track past reviews with local JSON storage filtering.
 
@@ -179,28 +181,105 @@ LOG_DIR=./logs
 LOG_LEVEL=info
 ```
 
+## MCP Server
+
+Code-Tanuki exposes a [Model Context Protocol](https://modelcontextprotocol.io/) server over **SSE (HTTP)** transport, allowing AI agents (Claude Code, Claude Desktop, Cursor, etc.) to interact with Jira tickets directly.
+
+### Available Tools
+
+| Tool | Description |
+| ---- | ----------- |
+| `list_tickets` | List local tickets with optional filters (search, type, status) |
+| `get_ticket` | Get full ticket detail by `localId` |
+| `create_ticket` | Create a new local ticket |
+| `update_ticket` | Update fields of an existing local ticket |
+| `delete_ticket` | Delete a local ticket |
+| `sync_ticket_from_jira` | Pull a Jira issue into local storage by Jira key |
+| `push_ticket_to_jira` | Create the local ticket as a new Jira issue |
+| `update_ticket_on_jira` | Push local changes to an existing Jira issue |
+| `refresh_ticket_from_jira` | Pull latest state from Jira into the local record |
+
+### Running the MCP Server
+
+```bash
+# Start standalone (default port 3001)
+yarn mcp
+
+# Custom port
+MCP_PORT=3001 yarn mcp
+```
+
+The MCP endpoint is available at `http://localhost:3001/mcp`.
+
+### Connecting to Claude Code
+
+```bash
+claude mcp add --transport http code-tanuki-tickets http://localhost:3001/mcp
+```
+
+### Connecting to Claude Desktop
+
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "code-tanuki-tickets": {
+      "url": "http://localhost:3001/mcp"
+    }
+  }
+}
+```
+
+> When running via Docker, the MCP server starts automatically alongside the web app and is exposed on **port 8083** (`http://localhost:8083/mcp`).
+
+## OpenAPI / Swagger
+
+The REST API is documented using OpenAPI 3.0 and viewable via Swagger UI.
+
+### Viewing the API Docs
+
+Start the dev server and navigate to:
+
+```
+http://localhost:3000/swagger
+```
+
+### Regenerating the Spec
+
+The spec is generated from Zod schemas in `src/lib/schemas/` using `@asteasolutions/zod-to-openapi`:
+
+```bash
+yarn swagger
+```
+
+This writes the output to `docs/swagger.yaml`. The Swagger UI at `/swagger` always serves the latest generated spec via `/api/swagger`.
+
 ## npm Scripts
 
-| Command                      | Purpose                        |
-| ---------------------------- | ------------------------------ |
-| `npm run dev`                | Start development server       |
-| `npm run build`              | Production build               |
-| `npm run start`              | Start production server        |
-| `npm run lint`               | ESLint check                   |
-| `npm run type-check`         | TypeScript type checking       |
-| `npm run format`             | Prettier formatting            |
-| `npm run sync-jira`          | Run Jira sync script           |
-| `npm run docker:compose:up`  | Start with Docker Compose      |
+| Command                      | Purpose                              |
+| ---------------------------- | ------------------------------------ |
+| `yarn dev`                   | Start development server             |
+| `yarn build`                 | Production build                     |
+| `yarn start`                 | Start production server              |
+| `yarn lint`                  | ESLint check                         |
+| `yarn type-check`            | TypeScript type checking             |
+| `yarn format`                | Prettier formatting                  |
+| `yarn swagger`               | Regenerate `docs/swagger.yaml`       |
+| `yarn mcp`                   | Start MCP SSE server (port 3001)     |
+| `yarn docker:compose:up`     | Start web + MCP with Docker Compose  |
 
 ## Docker Deployment
 
 ```bash
-# Build & Run via Docker Compose (port 8082)
-docker-compose up -d
+# Build & start (web on 8082, MCP on 8083)
+docker compose up -d --build
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 ```
+
+Both the web app and MCP server start automatically inside the same container.
 
 ## Project Structure
 
