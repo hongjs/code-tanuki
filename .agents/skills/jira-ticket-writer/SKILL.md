@@ -1,0 +1,1 @@
+../../../.claude/skills/jira-ticket-writer/SKILL.md
