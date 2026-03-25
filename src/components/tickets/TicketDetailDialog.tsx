@@ -31,6 +31,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import SyncIcon from '@mui/icons-material/Sync';
 import CloseIcon from '@mui/icons-material/Close';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { LocalTicket, TicketType } from '@/types/ticket';
 import { format } from 'date-fns';
 import { safeFormat } from '@/lib/utils/date';
@@ -40,11 +41,14 @@ interface TicketDetailDialogProps {
   ticket: LocalTicket | null;
   open: boolean;
   jiraBaseUrl?: string;
+  allTickets?: LocalTicket[];
   onClose: () => void;
   onSave: (localId: string, updates: Partial<LocalTicket>) => Promise<void>;
   onCreateOnJira: (localId: string) => Promise<void>;
   onUpdateOnJira: (localId: string) => Promise<void>;
   onSyncFromJira: (localId: string) => Promise<void>;
+  onRefresh?: (localId: string) => Promise<void>;
+  onTicketClick?: (ticket: LocalTicket) => void;
 }
 
 const TICKET_TYPES: TicketType[] = ['Epic', 'Story', 'Task', 'Sub-task', 'Bug'];
@@ -55,15 +59,19 @@ export function TicketDetailDialog({
   ticket,
   open,
   jiraBaseUrl,
+  allTickets = [],
   onClose,
   onSave,
   onCreateOnJira,
   onUpdateOnJira,
   onSyncFromJira,
+  onRefresh,
+  onTicketClick,
 }: TicketDetailDialogProps) {
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
   const [jiraLoading, setJiraLoading] = useState<'create' | 'update' | 'sync' | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState<Partial<LocalTicket>>({});
@@ -138,6 +146,14 @@ export function TicketDetailDialog({
   if (!ticket) return null;
 
   const displayTicket = editMode ? { ...ticket, ...form } : ticket;
+
+  const subtasks = allTickets.filter(
+    (t) => t.parentKey && (t.parentKey === ticket.jiraKey || t.parentKey === ticket.localId)
+  );
+
+  const parentTicket = ticket.parentKey
+    ? allTickets.find((t) => t.jiraKey === ticket.parentKey || t.localId === ticket.parentKey)
+    : null;
 
   const markdownSx = {
     fontSize: '1rem',
@@ -249,13 +265,6 @@ export function TicketDetailDialog({
             />
           )}
           <Box sx={{ flex: 1 }} />
-          {!editMode && (
-            <Tooltip title="Edit">
-              <IconButton size="small" onClick={handleStartEdit} sx={{ color: '#94a3b8', '&:hover': { color: '#6366f1' } }}>
-                <EditIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
           <IconButton size="small" onClick={onClose} sx={{ color: '#94a3b8' }}>
             <CloseIcon fontSize="small" />
           </IconButton>
@@ -386,9 +395,35 @@ export function TicketDetailDialog({
             />
           )}
           {!editMode && ticket.parentKey && (
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '1rem' }}>
-              Parent: <strong>{ticket.parentKey}</strong>
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.9rem' }}>
+                Parent:
+              </Typography>
+              {parentTicket ? (
+                <Box
+                  onClick={() => onTicketClick?.(parentTicket)}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    cursor: onTicketClick ? 'pointer' : 'default',
+                    color: '#4338ca',
+                    '&:hover': onTicketClick ? { textDecoration: 'underline' } : {},
+                  }}
+                >
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#4338ca', fontSize: '0.9rem' }}>
+                    {ticket.parentKey}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#334155', fontSize: '0.9rem' }}>
+                    {parentTicket.title}
+                  </Typography>
+                </Box>
+              ) : (
+                <Typography variant="body2" sx={{ fontWeight: 600, color: '#4338ca', fontSize: '0.9rem' }}>
+                  {ticket.parentKey}
+                </Typography>
+              )}
+            </Box>
           )}
 
           <Divider />
@@ -480,6 +515,56 @@ export function TicketDetailDialog({
             )}
           </Box>
 
+          {/* Sub-tasks Section */}
+          {!editMode && subtasks.length > 0 && (
+            <>
+              <Divider />
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, fontSize: '1rem' }}>
+                  Sub-tasks ({subtasks.length})
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {subtasks.map((sub) => (
+                    <Box
+                      key={sub.localId}
+                      onClick={() => onTicketClick?.(sub)}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1.5,
+                        p: 1.25,
+                        borderRadius: '10px',
+                        border: '1px solid #e2e8f0',
+                        backgroundColor: '#f8fafc',
+                        cursor: onTicketClick ? 'pointer' : 'default',
+                        '&:hover': onTicketClick ? { backgroundColor: '#f1f5f9', borderColor: '#c7d2fe' } : {},
+                      }}
+                    >
+                      <Chip
+                        label={sub.type}
+                        size="small"
+                        sx={{ ...getTypeChipSx(sub.type), fontWeight: 700, fontSize: '0.7rem' }}
+                      />
+                      {sub.jiraKey && (
+                        <Typography variant="caption" sx={{ fontWeight: 600, color: '#4338ca', minWidth: 80 }}>
+                          {sub.jiraKey}
+                        </Typography>
+                      )}
+                      <Typography variant="body2" sx={{ flex: 1, color: '#334155' }}>
+                        {sub.title}
+                      </Typography>
+                      <Chip
+                        label={sub.status}
+                        size="small"
+                        sx={{ ...getStatusChipSx(sub.status), fontWeight: 600, fontSize: '0.7rem' }}
+                      />
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+            </>
+          )}
+
           <Divider />
 
           {/* Comments Section */}
@@ -541,6 +626,29 @@ export function TicketDetailDialog({
           gap: 1,
         }}
       >
+        {/* Refresh from local */}
+        {onRefresh && (
+          <Tooltip title="Reload from local JSON">
+            <span>
+              <IconButton
+                size="small"
+                disabled={refreshing || editMode}
+                onClick={async () => {
+                  if (!ticket) return;
+                  setRefreshing(true);
+                  setError(null);
+                  try { await onRefresh(ticket.localId); }
+                  catch (e) { setError(e instanceof Error ? e.message : 'Failed to refresh'); }
+                  finally { setRefreshing(false); }
+                }}
+                sx={{ color: '#94a3b8', '&:hover': { color: '#6366f1' } }}
+              >
+                {refreshing ? <CircularProgress size={16} /> : <RefreshIcon fontSize="small" />}
+              </IconButton>
+            </span>
+          </Tooltip>
+        )}
+
         {/* Jira Actions */}
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           {!ticket.jiraKey ? (
@@ -630,13 +738,23 @@ export function TicketDetailDialog({
               </Button>
             </>
           ) : (
-            <Button
-              size="small"
-              onClick={onClose}
-              sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '8px' }}
-            >
-              Close
-            </Button>
+            <>
+              <Button
+                size="small"
+                startIcon={<EditIcon />}
+                onClick={handleStartEdit}
+                sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '8px' }}
+              >
+                Edit
+              </Button>
+              <Button
+                size="small"
+                onClick={onClose}
+                sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '8px' }}
+              >
+                Close
+              </Button>
+            </>
           )}
         </Box>
       </DialogActions>

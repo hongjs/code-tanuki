@@ -245,6 +245,16 @@ export function TicketsManager() {
     showSnackbar('Updated on Jira');
   };
 
+  const handleRefreshLocal = async (localId: string) => {
+    const [res] = await Promise.all([
+      fetch(`/api/tickets/${localId}`),
+      fetchTickets(),
+    ]);
+    if (!res.ok) throw new Error('Failed to refresh');
+    const data = await res.json();
+    setSelectedTicket(data.ticket);
+  };
+
   const handleSyncFromJira = async (localId: string) => {
     const res = await fetch(`/api/tickets/${localId}/jira`, { method: 'GET' });
     const data = await res.json();
@@ -878,11 +888,14 @@ export function TicketsManager() {
         ticket={selectedTicket}
         open={dialogOpen}
         jiraBaseUrl={jiraBaseUrl}
+        allTickets={tickets}
         onClose={handleCloseDialog}
         onSave={handleSave}
         onCreateOnJira={handleCreateOnJira}
         onUpdateOnJira={handleUpdateOnJira}
         onSyncFromJira={handleSyncFromJira}
+        onRefresh={handleRefreshLocal}
+        onTicketClick={handleOpenDialog}
       />
 
       {/* Snackbar */}
