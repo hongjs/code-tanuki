@@ -19,7 +19,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import SubdirectoryArrowRightIcon from '@mui/icons-material/SubdirectoryArrowRight';
 import CloudOffIcon from '@mui/icons-material/CloudOff';
 import { LocalTicket } from '@/types/ticket';
-import { isAfterSafe } from '@/lib/utils/date';
+import { isAfterSafe, safeFormat } from '@/lib/utils/date';
 import { getTypeChipSx, getStatusChipSx } from './ticketColors';
 
 function isTicketUnsynced(ticket: LocalTicket) {
@@ -62,6 +62,13 @@ export function StoryView({ tickets, jiraBaseUrl, onTicketClick }: StoryViewProp
     grouped[key].push(s);
   }
 
+  // Effective updatedAt: max(story.updatedAt, ...children.updatedAt)
+  const effectiveUpdatedAt = (story: LocalTicket): number => {
+    const children = subtasksByParent[story.jiraKey || story.localId] || [];
+    const dates = [story.updatedAt, ...children.map((c) => c.updatedAt)];
+    return Math.max(...dates.map((d) => new Date(d).getTime()));
+  };
+
   const epicKeys = Object.keys(grouped);
 
   if (stories.length === 0) {
@@ -76,7 +83,9 @@ export function StoryView({ tickets, jiraBaseUrl, onTicketClick }: StoryViewProp
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       {epicKeys.map((epicKey) => {
         const epic = epicKey !== '__none__' ? byKey[epicKey] : null;
-        const group = grouped[epicKey];
+        const group = [...grouped[epicKey]].sort(
+          (a, b) => effectiveUpdatedAt(b) - effectiveUpdatedAt(a)
+        );
 
         return (
           <Box key={epicKey}>
@@ -190,7 +199,7 @@ function StoryCard({ story, subtasks, jiraBaseUrl, onTicketClick }: StoryCardPro
         />
         <CardContent sx={{ flex: 1, p: '16px 20px !important' }}>
           {/* Top row: type + key + status + actions */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexWrap: 'wrap' }}>
             <Chip
               label={story.type}
               size="small"
@@ -214,6 +223,20 @@ function StoryCard({ story, subtasks, jiraBaseUrl, onTicketClick }: StoryCardPro
             )}
 
             <Box sx={{ flex: 1 }} />
+
+            {(() => {
+              const dates = [story.updatedAt, ...subtasks.map((c) => c.updatedAt)]
+                .map((d) => new Date(d).getTime())
+                .filter((t) => !isNaN(t));
+              const label = dates.length > 0
+                ? safeFormat(new Date(Math.max(...dates)).toISOString(), 'MMM d, HH:mm')
+                : null;
+              return label ? (
+                <Typography variant="caption" sx={{ color: '#94a3b8', flexShrink: 0, fontSize: '0.82rem' }}>
+                  {label}
+                </Typography>
+              ) : null;
+            })()}
 
             {story.storyPoints !== undefined && (
               <Chip
