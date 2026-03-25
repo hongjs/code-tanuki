@@ -10,10 +10,14 @@ import {
   DialogContent,
   DialogActions,
   Button,
+  ButtonGroup,
   Box,
   TextField,
   Select,
   MenuItem,
+  Menu,
+  ListItemIcon,
+  ListItemText,
   FormControl,
   InputLabel,
   Typography,
@@ -32,6 +36,9 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import SyncIcon from '@mui/icons-material/Sync';
 import CloseIcon from '@mui/icons-material/Close';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import AccountTreeIcon from '@mui/icons-material/AccountTree';
+import FolderIcon from '@mui/icons-material/Folder';
 import { LocalTicket, TicketType } from '@/types/ticket';
 import { format } from 'date-fns';
 import { safeFormat } from '@/lib/utils/date';
@@ -73,6 +80,7 @@ export function TicketDetailDialog({
   const [jiraLoading, setJiraLoading] = useState<'create' | 'update' | 'sync' | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [scopeMenuAnchor, setScopeMenuAnchor] = useState<{ el: HTMLElement; action: 'update' | 'sync' } | null>(null);
 
   const [form, setForm] = useState<Partial<LocalTicket>>({});
   
@@ -140,6 +148,35 @@ export function TicketDetailDialog({
       setError(e instanceof Error ? e.message : `Failed to ${action}`);
     } finally {
       setJiraLoading(null);
+    }
+  };
+
+  const handleJiraActionWithScope = async (action: 'update' | 'sync', includeChildren: boolean) => {
+    if (!ticket) return;
+    setScopeMenuAnchor(null);
+    setJiraLoading(action);
+    setError(null);
+    try {
+      if (action === 'update') await onUpdateOnJira(ticket.localId);
+      else await onSyncFromJira(ticket.localId);
+      if (includeChildren) {
+        for (const sub of subtasks) {
+          if (action === 'update') await onUpdateOnJira(sub.localId);
+          else await onSyncFromJira(sub.localId);
+        }
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : `Failed to ${action}`);
+    } finally {
+      setJiraLoading(null);
+    }
+  };
+
+  const openScopeMenu = (e: React.MouseEvent<HTMLElement>, action: 'update' | 'sync') => {
+    if (subtasks.length === 0) {
+      handleJiraAction(action);
+    } else {
+      setScopeMenuAnchor({ el: e.currentTarget, action });
     }
   };
 
@@ -674,34 +711,73 @@ export function TicketDetailDialog({
             </Button>
           ) : (
             <>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={
-                  jiraLoading === 'update' ? (
-                    <CircularProgress size={14} color="inherit" />
-                  ) : (
-                    <CloudUploadIcon />
-                  )
-                }
-                disabled={!!jiraLoading || editMode}
-                onClick={() => handleJiraAction('update')}
-                sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '8px' }}
+              <ButtonGroup variant="outlined" size="small" disabled={!!jiraLoading || editMode}>
+                <Button
+                  startIcon={jiraLoading === 'update' ? <CircularProgress size={14} color="inherit" /> : <CloudUploadIcon />}
+                  onClick={(e) => openScopeMenu(e, 'update')}
+                  sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '8px 0 0 8px' }}
+                >
+                  Update on Jira
+                </Button>
+                {subtasks.length > 0 && (
+                  <Tooltip title={`Also apply to ${subtasks.length} sub-task${subtasks.length > 1 ? 's' : ''}`}>
+                    <Button
+                      size="small"
+                      onClick={(e) => setScopeMenuAnchor({ el: e.currentTarget, action: 'update' })}
+                      sx={{ px: 0.5, borderRadius: '0 8px 8px 0', minWidth: 28 }}
+                    >
+                      <ArrowDropDownIcon fontSize="small" />
+                    </Button>
+                  </Tooltip>
+                )}
+              </ButtonGroup>
+
+              <ButtonGroup variant="outlined" size="small" disabled={!!jiraLoading || editMode}>
+                <Button
+                  startIcon={jiraLoading === 'sync' ? <CircularProgress size={14} color="inherit" /> : <SyncIcon />}
+                  onClick={(e) => openScopeMenu(e, 'sync')}
+                  sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '8px 0 0 8px' }}
+                >
+                  Sync from Jira
+                </Button>
+                {subtasks.length > 0 && (
+                  <Tooltip title={`Also apply to ${subtasks.length} sub-task${subtasks.length > 1 ? 's' : ''}`}>
+                    <Button
+                      size="small"
+                      onClick={(e) => setScopeMenuAnchor({ el: e.currentTarget, action: 'sync' })}
+                      sx={{ px: 0.5, borderRadius: '0 8px 8px 0', minWidth: 28 }}
+                    >
+                      <ArrowDropDownIcon fontSize="small" />
+                    </Button>
+                  </Tooltip>
+                )}
+              </ButtonGroup>
+
+              {/* Scope menu */}
+              <Menu
+                anchorEl={scopeMenuAnchor?.el}
+                open={!!scopeMenuAnchor}
+                onClose={() => setScopeMenuAnchor(null)}
+                transformOrigin={{ horizontal: 'left', vertical: 'top' }}
+                anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
               >
-                Update on Jira
-              </Button>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={
-                  jiraLoading === 'sync' ? <CircularProgress size={14} color="inherit" /> : <SyncIcon />
-                }
-                disabled={!!jiraLoading || editMode}
-                onClick={() => handleJiraAction('sync')}
-                sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '8px' }}
-              >
-                Sync from Jira
-              </Button>
+                <MenuItem onClick={() => handleJiraActionWithScope(scopeMenuAnchor!.action, false)}>
+                  <ListItemIcon><FolderIcon fontSize="small" /></ListItemIcon>
+                  <ListItemText
+                    primary="This ticket only"
+                    secondary={ticket.jiraKey || ticket.title}
+                    secondaryTypographyProps={{ noWrap: true, sx: { maxWidth: 220 } }}
+                  />
+                </MenuItem>
+                <MenuItem onClick={() => handleJiraActionWithScope(scopeMenuAnchor!.action, true)}>
+                  <ListItemIcon><AccountTreeIcon fontSize="small" sx={{ color: '#6366f1' }} /></ListItemIcon>
+                  <ListItemText
+                    primary={<span>This ticket <strong>+ {subtasks.length} sub-task{subtasks.length > 1 ? 's' : ''}</strong></span>}
+                    secondary={subtasks.map((s) => s.jiraKey || s.title).join(', ')}
+                    secondaryTypographyProps={{ noWrap: true, sx: { maxWidth: 220 } }}
+                  />
+                </MenuItem>
+              </Menu>
             </>
           )}
         </Box>

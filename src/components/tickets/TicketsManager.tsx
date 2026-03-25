@@ -99,8 +99,14 @@ export function TicketsManager() {
     severity: 'success',
   });
   const [bulkLoading, setBulkLoading] = useState<'create' | 'sync' | null>(null);
+  const [jiraBaseUrl, setJiraBaseUrl] = useState<string | undefined>(undefined);
 
-  const jiraBaseUrl = process.env.NEXT_PUBLIC_JIRA_BASE_URL;
+  useEffect(() => {
+    fetch('/api/config')
+      .then((r) => r.json())
+      .then((d) => { if (d.jiraBaseUrl) setJiraBaseUrl(d.jiraBaseUrl); })
+      .catch(() => {});
+  }, []);
 
   const fetchTickets = useCallback(async () => {
     setLoading(true);
