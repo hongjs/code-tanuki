@@ -99,8 +99,14 @@ export function TicketsManager() {
     severity: 'success',
   });
   const [bulkLoading, setBulkLoading] = useState<'create' | 'sync' | null>(null);
+  const [jiraBaseUrl, setJiraBaseUrl] = useState<string | undefined>(undefined);
 
-  const jiraBaseUrl = process.env.NEXT_PUBLIC_JIRA_BASE_URL;
+  useEffect(() => {
+    fetch('/api/config')
+      .then((r) => r.json())
+      .then((d) => { if (d.jiraBaseUrl) setJiraBaseUrl(d.jiraBaseUrl); })
+      .catch(() => {});
+  }, []);
 
   const fetchTickets = useCallback(async () => {
     setLoading(true);
@@ -112,7 +118,9 @@ export function TicketsManager() {
 
       const res = await fetch(`/api/tickets?${params.toString()}`);
       const data = await res.json();
-      setTickets(data.tickets || []);
+      const raw: LocalTicket[] = data.tickets || [];
+      raw.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      setTickets(raw);
     } catch {
       showSnackbar('Failed to load tickets', 'error');
     } finally {
@@ -241,6 +249,16 @@ export function TicketsManager() {
       }
     }
     showSnackbar('Updated on Jira');
+  };
+
+  const handleRefreshLocal = async (localId: string) => {
+    const [res] = await Promise.all([
+      fetch(`/api/tickets/${localId}`),
+      fetchTickets(),
+    ]);
+    if (!res.ok) throw new Error('Failed to refresh');
+    const data = await res.json();
+    setSelectedTicket(data.ticket);
   };
 
   const handleSyncFromJira = async (localId: string) => {
@@ -563,23 +581,29 @@ export function TicketsManager() {
       </Fade>
 
       <Grow in timeout={1600}>
-        <Card
-          elevation={0}
-          sx={{
-            background: 'white',
-            borderRadius: '24px',
-            overflow: 'hidden',
-            position: 'relative',
-            '&::before': {
-              content: '""',
-              position: 'absolute',
-              top: 0, left: 0, right: 0,
-              height: '3px',
-              background: 'linear-gradient(90deg, #c7d2fe 0%, #a5b4fc 50%, #bfdbfe 100%)',
-            },
-          }}
-        >
-          <Box sx={{ p: 3 }}>
+        <Box>
+          {/* Sticky header — lives outside the Card so no overflow ancestor blocks it */}
+          <Box
+            sx={{
+              position: 'sticky',
+              top: 0,
+              zIndex: 10,
+              background: 'white',
+              borderRadius: '24px 24px 0 0',
+              borderBottom: '1px solid #f1f5f9',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+              p: 3,
+              pb: 2,
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                top: 0, left: 0, right: 0,
+                height: '3px',
+                borderRadius: '24px 24px 0 0',
+                background: 'linear-gradient(90deg, #c7d2fe 0%, #a5b4fc 50%, #bfdbfe 100%)',
+              },
+            }}
+          >
             {/* Filters */}
             <TicketFilters
               search={search}
@@ -711,8 +735,18 @@ export function TicketsManager() {
               )}
             </Box>
           </Box>
+          </Box>
 
           {/* Views */}
+          <Card
+            elevation={0}
+            sx={{
+              background: 'white',
+              borderRadius: '0 0 24px 24px',
+              overflow: 'hidden',
+            }}
+          >
+          <Box sx={{ p: 3, pt: 2 }}>
             {viewMode === 'list' && (
               <Box sx={{ height: 600, width: '100%' }}>
                 <DataGrid
@@ -725,7 +759,10 @@ export function TicketsManager() {
                   onRowSelectionModelChange={setRowSelectionModel}
                   disableRowSelectionOnClick
                   pageSizeOptions={[20, 50, 100]}
-                  initialState={{ pagination: { paginationModel: { pageSize: 20 } } }}
+                  initialState={{
+                    pagination: { paginationModel: { pageSize: 20 } },
+                    sorting: { sortModel: [{ field: 'updatedAt', sort: 'desc' }] },
+                  }}
                   sx={{
                     border: 'none',
                     '& .MuiDataGrid-cell': { display: 'flex', alignItems: 'center' },
@@ -751,7 +788,8 @@ export function TicketsManager() {
               />
             )}
           </Box>
-        </Card>
+          </Card>
+        </Box>
       </Grow>
 
       {/* Row Actions Menu */}
@@ -856,11 +894,14 @@ export function TicketsManager() {
         ticket={selectedTicket}
         open={dialogOpen}
         jiraBaseUrl={jiraBaseUrl}
+        allTickets={tickets}
         onClose={handleCloseDialog}
         onSave={handleSave}
         onCreateOnJira={handleCreateOnJira}
         onUpdateOnJira={handleUpdateOnJira}
         onSyncFromJira={handleSyncFromJira}
+        onRefresh={handleRefreshLocal}
+        onTicketClick={handleOpenDialog}
       />
 
       {/* Snackbar */}

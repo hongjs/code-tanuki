@@ -209,14 +209,25 @@ export class JiraClient {
           return { key, id };
         } catch (error: unknown) {
           if (axios.isAxiosError(error)) {
-            const message =
-              error.response?.data?.errors
-                ? JSON.stringify(error.response.data.errors)
-                : error.response?.data?.errorMessages?.join(', ') || error.message;
-            logger.error('Failed to create Jira issue', { error: message, status: error.response?.status });
+            const data = error.response?.data ?? {};
+            const errors = data.errors && Object.keys(data.errors).length > 0
+              ? data.errors : undefined;
+            const errorMessages = data.errorMessages?.length ? data.errorMessages : undefined;
+            const message = errors
+              ? JSON.stringify(errors)
+              : errorMessages?.join(', ') || error.message;
+            logger.error('Failed to create Jira issue', {
+              status: error.response?.status,
+              message,
+              errors,
+              errorMessages,
+              responseBody: JSON.stringify(data),
+              ticket: ticket.title,
+            });
             throw new JiraAPIError(`Failed to create issue: ${message}`, { ticket: ticket.title });
           }
           const message = error instanceof Error ? error.message : 'Unknown error';
+          logger.error('Failed to create Jira issue (non-axios)', { message, ticket: ticket.title });
           throw new JiraAPIError(`Failed to create issue: ${message}`, { ticket: ticket.title });
         }
       },

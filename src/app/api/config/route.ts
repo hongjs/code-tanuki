@@ -8,6 +8,7 @@ export async function GET() {
         process.env.JIRA_EMAIL &&
         process.env.JIRA_API_TOKEN
       ),
+      jiraBaseUrl: process.env.JIRA_BASE_URL || null,
       hasAnthropicKey: !!process.env.ANTHROPIC_API_KEY,
       hasGeminiKey: !!process.env.GEMINI_API_KEY,
     };
