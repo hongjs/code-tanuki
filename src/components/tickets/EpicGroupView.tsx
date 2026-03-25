@@ -133,7 +133,8 @@ export function EpicGroupView({ tickets, jiraBaseUrl, onTicketClick }: EpicGroup
                       <Box key={child.localId}>
                         <ListItem
                           divider={idx < children.length - 1 || subtasks.length > 0}
-                          sx={{ pl: 4, '&:hover': { background: '#fafafa' } }}
+                          onClick={() => onTicketClick(child)}
+                          sx={{ pl: 4, cursor: 'pointer', '&:hover': { background: '#f0f4ff' } }}
                           secondaryAction={
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                               <Chip
@@ -149,7 +150,7 @@ export function EpicGroupView({ tickets, jiraBaseUrl, onTicketClick }: EpicGroup
                               <Tooltip title="Edit ticket">
                                 <IconButton
                                   size="small"
-                                  onClick={() => onTicketClick(child)}
+                                  onClick={(e) => { e.stopPropagation(); onTicketClick(child); }}
                                   sx={{ color: '#cbd5e1', '&:hover': { color: '#6366f1' } }}
                                 >
                                   <EditIcon fontSize="small" />
@@ -163,6 +164,7 @@ export function EpicGroupView({ tickets, jiraBaseUrl, onTicketClick }: EpicGroup
                                     href={`${jiraBaseUrl}/browse/${child.jiraKey}`}
                                     target="_blank"
                                     rel="noopener"
+                                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
                                     sx={{ color: '#cbd5e1', '&:hover': { color: '#6366f1' } }}
                                   >
                                     <OpenInNewIcon fontSize="small" />
@@ -192,7 +194,8 @@ export function EpicGroupView({ tickets, jiraBaseUrl, onTicketClick }: EpicGroup
                         {subtasks.map((sub) => (
                           <ListItem
                             key={sub.localId}
-                            sx={{ pl: 8, background: '#fafafa', '&:hover': { background: '#f5f5f5' } }}
+                            onClick={() => onTicketClick(sub)}
+                            sx={{ pl: 8, background: '#fafafa', cursor: 'pointer', '&:hover': { background: '#f0f4ff' } }}
                             secondaryAction={
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                 <Chip
@@ -208,7 +211,7 @@ export function EpicGroupView({ tickets, jiraBaseUrl, onTicketClick }: EpicGroup
                                 <Tooltip title="Edit ticket">
                                   <IconButton
                                     size="small"
-                                    onClick={() => onTicketClick(sub)}
+                                    onClick={(e) => { e.stopPropagation(); onTicketClick(sub); }}
                                     sx={{ color: '#cbd5e1', '&:hover': { color: '#6366f1' } }}
                                   >
                                     <EditIcon fontSize="small" />
@@ -266,7 +269,8 @@ export function EpicGroupView({ tickets, jiraBaseUrl, onTicketClick }: EpicGroup
                 <ListItem
                   key={ticket.localId}
                   divider={idx < orphans.length - 1}
-                  sx={{ pl: 3, '&:hover': { background: '#fafafa' } }}
+                  onClick={() => onTicketClick(ticket)}
+                  sx={{ pl: 3, cursor: 'pointer', '&:hover': { background: '#f0f4ff' } }}
                   secondaryAction={
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       {isTicketUnsynced(ticket) && (
