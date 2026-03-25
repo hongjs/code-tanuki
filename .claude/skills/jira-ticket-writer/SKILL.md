@@ -30,3 +30,11 @@ Clear, testable conditions that define "done". Use Given/When/Then or bullet for
   - **Sub-task**: A smaller unit broken down from a Story or Task.
 - **Scope**: One ticket = one clear responsibility. Split if in doubt.
 - **Language**: English only. Plain language — no jargon without explanation.
+
+---
+
+## Tooling
+
+All ticket operations **MUST** go through the **`code-tanuki-tickets` MCP server**.
+Never call the HTTP API directly, never write JSON files directly.
+If MCP is unavailable, stop and ask the user to start it.
