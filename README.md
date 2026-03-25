@@ -187,6 +187,8 @@ Code-Tanuki exposes a [Model Context Protocol](https://modelcontextprotocol.io/)
 
 ### Available Tools
 
+_Ticket tools:_
+
 | Tool | Description |
 | ---- | ----------- |
 | `list_tickets` | List local tickets with optional filters (search, type, status) |
@@ -198,6 +200,28 @@ Code-Tanuki exposes a [Model Context Protocol](https://modelcontextprotocol.io/)
 | `push_ticket_to_jira` | Create the local ticket as a new Jira issue |
 | `update_ticket_on_jira` | Push local changes to an existing Jira issue |
 | `refresh_ticket_from_jira` | Pull latest state from Jira into the local record |
+
+_Review tools:_
+
+| Tool | Description |
+| ---- | ----------- |
+| `list_reviews` | List all local code reviews (v2) |
+| `get_review` | Get full review detail by ID |
+| `save_review` | Create a new code review record |
+
+_Knowledge tools:_
+
+| Tool | Description |
+| ---- | ----------- |
+| `read_knowledge` | Read the `data/knowledge.md` knowledge base |
+| `update_knowledge` | Overwrite `data/knowledge.md` with updated content |
+
+_Log tools:_
+
+| Tool | Description |
+| ---- | ----------- |
+| `list_log_files` | List available log files with sizes and timestamps |
+| `read_log` | Read last N lines of a log file, filterable by level or keyword |
 
 ### Running the MCP Server
 
@@ -247,7 +271,8 @@ http://localhost:3000/swagger
 
 ### Regenerating the Spec
 
-The spec is generated from Zod schemas in `src/lib/schemas/` using `@asteasolutions/zod-to-openapi`:
+The spec is generated from Zod schemas in `src/lib/schemas/` using `@asteasolutions/zod-to-openapi`.
+Currently covers: `/api/tickets/*` and `/api/reviews-v2/*`.
 
 ```bash
 yarn swagger
@@ -266,18 +291,24 @@ This writes the output to `docs/swagger.yaml`. The Swagger UI at `/swagger` alwa
 | `yarn type-check`            | TypeScript type checking             |
 | `yarn format`                | Prettier formatting                  |
 | `yarn swagger`               | Regenerate `docs/swagger.yaml`       |
-| `yarn mcp`                   | Start MCP SSE server (port 3001)     |
-| `yarn docker:compose:up`     | Start web + MCP with Docker Compose  |
+| `yarn mcp`                   | Start MCP server (port 3001)         |
+| `yarn mcp:register`          | Register MCP server to Claude Code   |
+| `yarn docker:compose:up`     | Start with Docker Compose (existing image) |
 
 ## Docker Deployment
 
 ```bash
-# Build & start (web on 8082, MCP on 8083)
+# Build new image and start (always picks up latest code)
 docker compose up -d --build
+
+# Start only (uses existing image — code may be stale if not rebuilt)
+yarn docker:compose:up
 
 # View logs
 docker compose logs -f
 ```
+
+> **Important**: `yarn docker:compose:up` reuses the existing Docker image. Run `docker compose up -d --build` after any code changes.
 
 Both the web app and MCP server start automatically inside the same container.
 
