@@ -112,7 +112,9 @@ export function TicketsManager() {
 
       const res = await fetch(`/api/tickets?${params.toString()}`);
       const data = await res.json();
-      setTickets(data.tickets || []);
+      const raw: LocalTicket[] = data.tickets || [];
+      raw.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      setTickets(raw);
     } catch {
       showSnackbar('Failed to load tickets', 'error');
     } finally {
@@ -741,7 +743,10 @@ export function TicketsManager() {
                   onRowSelectionModelChange={setRowSelectionModel}
                   disableRowSelectionOnClick
                   pageSizeOptions={[20, 50, 100]}
-                  initialState={{ pagination: { paginationModel: { pageSize: 20 } } }}
+                  initialState={{
+                    pagination: { paginationModel: { pageSize: 20 } },
+                    sorting: { sortModel: [{ field: 'updatedAt', sort: 'desc' }] },
+                  }}
                   sx={{
                     border: 'none',
                     '& .MuiDataGrid-cell': { display: 'flex', alignItems: 'center' },
