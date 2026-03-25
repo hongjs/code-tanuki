@@ -205,6 +205,134 @@ components:
           description: Jira issue key
       required:
         - jiraKey
+    ReviewV2IndexEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID v7
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO 8601 creation time
+        prUrl:
+          type: string
+          format: uri
+          description: Full GitHub PR URL
+        prNumber:
+          type: integer
+          description: PR number
+        repository:
+          type: string
+          description: '"owner/repo" format'
+        prTitle:
+          type: string
+          description: PR title
+        status:
+          $ref: '#/components/schemas/ReviewV2Status'
+        summary:
+          type: string
+          description: Brief AI-generated summary of the PR
+        jiraTicketId:
+          type: string
+          description: Associated Jira ticket ID, e.g. "PROJ-123"
+      required:
+        - id
+        - timestamp
+        - prUrl
+        - prNumber
+        - repository
+        - prTitle
+        - status
+    ReviewV2Status:
+      type: string
+      enum:
+        - pending
+        - approved
+        - posted
+        - error
+    ReviewV2Detail:
+      allOf:
+        - $ref: '#/components/schemas/ReviewV2IndexEntry'
+        - type: object
+          properties:
+            comments:
+              type: array
+              items:
+                $ref: '#/components/schemas/ReviewComment'
+              description: Review comments
+          required:
+            - comments
+    ReviewComment:
+      type: object
+      properties:
+        path:
+          type: string
+          description: File path relative to repo root
+        line:
+          type: integer
+          description: Line number the comment targets
+        start_line:
+          type: integer
+          description: Start line for multi-line suggestions
+        body:
+          type: string
+          description: Comment body in Markdown. Use ```suggestion blocks if applicable.
+        severity:
+          type: string
+          enum:
+            - critical
+            - warning
+            - suggestion
+          description: Severity level of the comment
+      required:
+        - path
+        - line
+        - body
+        - severity
+    CreateReviewV2Request:
+      type: object
+      properties:
+        prUrl:
+          type: string
+          format: uri
+          description: Full GitHub PR URL
+        prNumber:
+          type: integer
+          description: PR number
+        repository:
+          type: string
+          description: '"owner/repo" format'
+        prTitle:
+          type: string
+          description: PR title
+        summary:
+          type: string
+          description: Brief AI-generated summary
+        jiraTicketId:
+          type: string
+          description: Associated Jira ticket ID
+        comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReviewComment'
+          default: []
+      required:
+        - prUrl
+        - prNumber
+        - repository
+        - prTitle
+    UpdateReviewV2Request:
+      type: object
+      properties:
+        comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReviewComment'
+          description: Updated list of comments
+      required:
+        - comments
     BulkJiraRequest:
       type: object
       properties:
@@ -527,5 +655,136 @@ paths:
           description: No jiraKey on local ticket
         '404':
           description: Local ticket not found
+        '500':
+          description: Server error
+  /api/reviews-v2:
+    get:
+      tags:
+        - reviews-v2
+      summary: List all code reviews
+      operationId: listReviews
+      responses:
+        '200':
+          description: Array of review index entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReviewV2IndexEntry'
+        '500':
+          description: Server error
+    post:
+      tags:
+        - reviews-v2
+      summary: Create a new code review
+      operationId: createReview
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReviewV2Request'
+      responses:
+        '201':
+          description: Created review
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewV2Detail'
+        '500':
+          description: Server error
+  /api/reviews-v2/{id}:
+    get:
+      tags:
+        - reviews-v2
+      summary: Get review detail
+      operationId: getReview
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+          required: true
+          name: id
+          in: path
+      responses:
+        '200':
+          description: Review detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewV2Detail'
+        '404':
+          description: Not found
+        '500':
+          description: Server error
+    put:
+      tags:
+        - reviews-v2
+      summary: Update review comments
+      operationId: updateReview
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+          required: true
+          name: id
+          in: path
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateReviewV2Request'
+      responses:
+        '200':
+          description: Updated review
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  review:
+                    $ref: '#/components/schemas/ReviewV2Detail'
+                required:
+                  - success
+                  - review
+        '404':
+          description: Not found
+        '500':
+          description: Server error
+  /api/reviews-v2/{id}/approve:
+    post:
+      tags:
+        - reviews-v2
+      summary: Post review comments to GitHub PR
+      description: Posts all review comments to the linked GitHub PR and marks the review as posted.
+      operationId: approveReview
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+          required: true
+          name: id
+          in: path
+      responses:
+        '200':
+          description: Posted to GitHub successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                required:
+                  - success
+                  - message
+        '400':
+          description: Already posted
+        '404':
+          description: Not found
         '500':
           description: Server error

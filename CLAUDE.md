@@ -287,7 +287,9 @@ const apiKey = env.ANTHROPIC_API_KEY; // Type-safe!
 
 A standalone [Model Context Protocol](https://modelcontextprotocol.io/) server over **Streamable HTTP** transport. Each incoming POST to `/mcp` initialises a new session; subsequent requests reuse the session via `mcp-session-id` header.
 
-**Registered tools** (all backed by `/api/tickets/*`):
+**Registered tools:**
+
+_Ticket tools_ (backed by `/api/tickets/*`):
 
 | Tool | Endpoint |
 |------|----------|
@@ -300,6 +302,28 @@ A standalone [Model Context Protocol](https://modelcontextprotocol.io/) server o
 | `push_ticket_to_jira` | `POST /api/tickets/:localId/jira` |
 | `update_ticket_on_jira` | `PATCH /api/tickets/:localId/jira` |
 | `refresh_ticket_from_jira` | `GET /api/tickets/:localId/jira` |
+
+_Review tools_ (backed by `/api/reviews-v2/*`):
+
+| Tool | Endpoint |
+|------|----------|
+| `list_reviews` | `GET /api/reviews-v2` |
+| `get_review` | `GET /api/reviews-v2/:id` |
+| `save_review` | `POST /api/reviews-v2` |
+
+_Knowledge tools_ (direct filesystem via MCP server):
+
+| Tool | Description |
+|------|-------------|
+| `read_knowledge` | Read `data/knowledge.md` |
+| `update_knowledge` | Overwrite `data/knowledge.md` with new content |
+
+_Log tools_ (direct filesystem via MCP server):
+
+| Tool | Description |
+|------|-------------|
+| `list_log_files` | List available log files with sizes and timestamps |
+| `read_log` | Read last N lines of `combined.log` or `error.log`, filterable by level/search |
 
 **Environment variables**:
 - `MCP_PORT` — HTTP port (default `3001`)
@@ -315,7 +339,11 @@ claude mcp add --transport http code-tanuki-tickets http://localhost:3001/mcp
 
 ### OpenAPI / Swagger
 
-**Spec file**: `docs/swagger.yaml` — generated from Zod schemas in `src/lib/schemas/ticket-schemas.ts` using `@asteasolutions/zod-to-openapi`.
+**Spec file**: `docs/swagger.yaml` — generated from Zod schemas in `src/lib/schemas/` using `@asteasolutions/zod-to-openapi`.
+
+Schema files:
+- `ticket-schemas.ts` — Ticket API schemas
+- `review-v2-schemas.ts` — Reviews V2 API schemas
 
 **Regenerate**:
 ```bash
@@ -325,6 +353,8 @@ yarn swagger   # runs scripts/gen-swagger.ts → writes docs/swagger.yaml
 **Serve**: `GET /api/swagger` reads `docs/swagger.yaml` and returns it as JSON for the Swagger UI.
 
 **Swagger UI**: available at `http://localhost:3000/swagger` (rendered by `src/app/swagger/SwaggerUIComponent.tsx`).
+
+**Covered endpoints**: `/api/tickets/*` and `/api/reviews-v2/*`.
 
 When adding new API endpoints with Zod request/response schemas, register them in `scripts/gen-swagger.ts` and re-run `yarn swagger` to keep the spec in sync.
 
@@ -380,10 +410,14 @@ When creating or generating JSON tickets in `/data/jira-tickets/`, always sync b
 
 ### Adding a New MCP Tool
 
-1. Open `mcp/index.ts`
-2. Call `server.registerTool(name, { description, inputSchema }, handler)` inside `createMcpServer()`
-3. The handler should call `apiFetch()` pointing to the relevant API route
-4. Restart `yarn mcp` — no rebuild needed
+1. Create or update a tool file in `mcp/tools/` (e.g. `mcp/tools/reviews.ts`)
+2. Export a `register*Tools(server: McpServer)` function
+3. Register tools with `server.registerTool(name, { description, inputSchema }, handler)`
+4. Import and call the register function in `mcp/index.ts` inside `createMcpServer()`
+5. Handlers should use `apiFetch()` for HTTP API-backed tools, or `fs/promises` for direct file access
+6. Restart `yarn mcp` — no rebuild needed
+
+> **MCP-only data rule**: All workflow/skill data access goes through MCP tools. Never read/write files directly in workflows. See `.claude/skills/code-review/SKILL.md`.
 
 ### Adding a New API Endpoint to the OpenAPI Spec
 
@@ -661,11 +695,18 @@ JSON storage is simple but not designed for scale:
 ## Deployment
 
 ```bash
-docker-compose up -d
+# Build new image and start (always picks up latest code)
+docker compose up -d --build
+
+# Start only (uses existing image — code may be stale)
+yarn docker:compose:up
 ```
 
+> **Important**: `yarn docker:compose:up` reuses the existing Docker image. Always use `docker compose up -d --build` after code changes to ensure the latest code is included.
+
 - Health check: `GET /api/health`
-- Port: `8082` (mapped to container port `3000`)
+- Web port: `8082` → container `3000`
+- MCP port: `8083` → container `3001`
 - Volumes: `./data` and `./logs` are mounted for persistence
 
 ## Additional Resources

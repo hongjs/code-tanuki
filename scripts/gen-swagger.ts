@@ -10,6 +10,12 @@ import {
   ticketSchema,
   updateTicketSchema,
 } from '../src/lib/schemas/ticket-schemas';
+import {
+  createReviewV2Schema,
+  reviewV2DetailSchema,
+  reviewV2IndexEntrySchema,
+  updateReviewV2Schema,
+} from '../src/lib/schemas/review-v2-schemas';
 
 const registry = new OpenAPIRegistry();
 
@@ -19,6 +25,10 @@ registry.register('TicketIndexEntry', ticketIndexEntrySchema);
 registry.register('CreateTicketRequest', createTicketSchema);
 registry.register('UpdateTicketRequest', updateTicketSchema);
 registry.register('SyncFromJiraRequest', syncFromJiraSchema);
+registry.register('ReviewV2IndexEntry', reviewV2IndexEntrySchema);
+registry.register('ReviewV2Detail', reviewV2DetailSchema);
+registry.register('CreateReviewV2Request', createReviewV2Schema);
+registry.register('UpdateReviewV2Request', updateReviewV2Schema);
 
 // ── GET /api/tickets ──────────────────────────────────────────────────────────
 registry.registerPath({
@@ -234,6 +244,98 @@ registry.registerPath({
     },
     400: { description: 'No jiraKey on local ticket' },
     404: { description: 'Local ticket not found' },
+    500: { description: 'Server error' },
+  },
+});
+
+// ── GET /api/reviews-v2 ──────────────────────────────────────────────────────
+registry.registerPath({
+  method: 'get',
+  path: '/api/reviews-v2',
+  tags: ['reviews-v2'],
+  summary: 'List all code reviews',
+  operationId: 'listReviews',
+  responses: {
+    200: {
+      description: 'Array of review index entries',
+      content: { 'application/json': { schema: z.array(reviewV2IndexEntrySchema) } },
+    },
+    500: { description: 'Server error' },
+  },
+});
+
+// ── POST /api/reviews-v2 ─────────────────────────────────────────────────────
+registry.registerPath({
+  method: 'post',
+  path: '/api/reviews-v2',
+  tags: ['reviews-v2'],
+  summary: 'Create a new code review',
+  operationId: 'createReview',
+  request: { body: { content: { 'application/json': { schema: createReviewV2Schema } } } },
+  responses: {
+    201: {
+      description: 'Created review',
+      content: { 'application/json': { schema: reviewV2DetailSchema } },
+    },
+    500: { description: 'Server error' },
+  },
+});
+
+// ── GET /api/reviews-v2/{id} ─────────────────────────────────────────────────
+registry.registerPath({
+  method: 'get',
+  path: '/api/reviews-v2/{id}',
+  tags: ['reviews-v2'],
+  summary: 'Get review detail',
+  operationId: 'getReview',
+  request: { params: z.object({ id: z.string().openapi({ format: 'uuid' }) }) },
+  responses: {
+    200: {
+      description: 'Review detail',
+      content: { 'application/json': { schema: reviewV2DetailSchema } },
+    },
+    404: { description: 'Not found' },
+    500: { description: 'Server error' },
+  },
+});
+
+// ── PUT /api/reviews-v2/{id} ─────────────────────────────────────────────────
+registry.registerPath({
+  method: 'put',
+  path: '/api/reviews-v2/{id}',
+  tags: ['reviews-v2'],
+  summary: 'Update review comments',
+  operationId: 'updateReview',
+  request: {
+    params: z.object({ id: z.string().openapi({ format: 'uuid' }) }),
+    body: { content: { 'application/json': { schema: updateReviewV2Schema } } },
+  },
+  responses: {
+    200: {
+      description: 'Updated review',
+      content: { 'application/json': { schema: z.object({ success: z.boolean(), review: reviewV2DetailSchema }) } },
+    },
+    404: { description: 'Not found' },
+    500: { description: 'Server error' },
+  },
+});
+
+// ── POST /api/reviews-v2/{id}/approve ────────────────────────────────────────
+registry.registerPath({
+  method: 'post',
+  path: '/api/reviews-v2/{id}/approve',
+  tags: ['reviews-v2'],
+  summary: 'Post review comments to GitHub PR',
+  description: 'Posts all review comments to the linked GitHub PR and marks the review as posted.',
+  operationId: 'approveReview',
+  request: { params: z.object({ id: z.string().openapi({ format: 'uuid' }) }) },
+  responses: {
+    200: {
+      description: 'Posted to GitHub successfully',
+      content: { 'application/json': { schema: z.object({ success: z.boolean(), message: z.string() }) } },
+    },
+    400: { description: 'Already posted' },
+    404: { description: 'Not found' },
     500: { description: 'Server error' },
   },
 });
