@@ -1,5 +1,6 @@
 services:
   code-tanuki:
+    image: code-tanuki:latest
     build:
       context: .
       dockerfile: Dockerfile

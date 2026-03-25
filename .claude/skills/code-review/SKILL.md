@@ -8,6 +8,9 @@ Defines the quality standards and review process for performing a code review.
 
 If a Jira ticket with acceptance criteria is present:
 
+> **Always fetch Jira ticket context via MCP tools only** (`list_tickets` → `get_ticket` or `sync_ticket_from_jira`).
+> Never read local files or use CLI commands to access Jira data.
+
 1. Does the code implement all Acceptance Criteria?
 2. Are all business rules and requirements met?
 3. Are requirement edge cases handled?
@@ -49,3 +52,17 @@ Use GitHub's suggestion format:
 - **Single-line**: Use `line` property with a ` ```suggestion ` block.
 - **Multi-line**: Use `start_line` + `line`. The block replaces all lines in that range.
 - Always preserve original indentation.
+
+---
+
+## 🔌 MCP-Only Data Access
+
+**All data access MUST go through MCP tools. Never read or write files directly.**
+
+| Data | Read | Write |
+|------|------|-------|
+| Knowledge base | `read_knowledge` | `update_knowledge` |
+| Jira tickets | `list_tickets` → `get_ticket` | — |
+| Sync from Jira | `sync_ticket_from_jira` | — |
+| Log files | `list_log_files` → `read_log` | — |
+| Code reviews (v2) | `list_reviews` → `get_review` | `save_review` |
