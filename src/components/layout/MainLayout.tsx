@@ -24,7 +24,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           minHeight: '100vh',
           background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
           position: 'relative',
-          overflow: 'hidden',
+          overflow: 'clip',
           '&::before': {
             content: '""',
             position: 'absolute',

@@ -563,23 +563,29 @@ export function TicketsManager() {
       </Fade>
 
       <Grow in timeout={1600}>
-        <Card
-          elevation={0}
-          sx={{
-            background: 'white',
-            borderRadius: '24px',
-            overflow: 'hidden',
-            position: 'relative',
-            '&::before': {
-              content: '""',
-              position: 'absolute',
-              top: 0, left: 0, right: 0,
-              height: '3px',
-              background: 'linear-gradient(90deg, #c7d2fe 0%, #a5b4fc 50%, #bfdbfe 100%)',
-            },
-          }}
-        >
-          <Box sx={{ p: 3 }}>
+        <Box>
+          {/* Sticky header — lives outside the Card so no overflow ancestor blocks it */}
+          <Box
+            sx={{
+              position: 'sticky',
+              top: 0,
+              zIndex: 10,
+              background: 'white',
+              borderRadius: '24px 24px 0 0',
+              borderBottom: '1px solid #f1f5f9',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+              p: 3,
+              pb: 2,
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                top: 0, left: 0, right: 0,
+                height: '3px',
+                borderRadius: '24px 24px 0 0',
+                background: 'linear-gradient(90deg, #c7d2fe 0%, #a5b4fc 50%, #bfdbfe 100%)',
+              },
+            }}
+          >
             {/* Filters */}
             <TicketFilters
               search={search}
@@ -711,8 +717,18 @@ export function TicketsManager() {
               )}
             </Box>
           </Box>
+          </Box>
 
           {/* Views */}
+          <Card
+            elevation={0}
+            sx={{
+              background: 'white',
+              borderRadius: '0 0 24px 24px',
+              overflow: 'hidden',
+            }}
+          >
+          <Box sx={{ p: 3, pt: 2 }}>
             {viewMode === 'list' && (
               <Box sx={{ height: 600, width: '100%' }}>
                 <DataGrid
@@ -751,7 +767,8 @@ export function TicketsManager() {
               />
             )}
           </Box>
-        </Card>
+          </Card>
+        </Box>
       </Grow>
 
       {/* Row Actions Menu */}
