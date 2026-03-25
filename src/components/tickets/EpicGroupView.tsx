@@ -15,7 +15,6 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import EditIcon from '@mui/icons-material/Edit';
 import CloudOffIcon from '@mui/icons-material/CloudOff';
 import { LocalTicket } from '@/types/ticket';
 import { isAfterSafe } from '@/lib/utils/date';
@@ -95,15 +94,6 @@ export function EpicGroupView({ tickets, jiraBaseUrl, onTicketClick }: EpicGroup
                   <CloudOffIcon sx={{ fontSize: 18, color: '#f59e0b', mr: 1 }} />
                 </Tooltip>
               )}
-              <Tooltip title="Edit ticket">
-                <IconButton
-                  size="small"
-                  onClick={(e) => { e.stopPropagation(); onTicketClick(epic); }}
-                  sx={{ color: '#94a3b8', '&:hover': { color: '#6366f1' } }}
-                >
-                  <EditIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
               {epic.jiraKey && jiraBaseUrl && (
                 <Tooltip title="Open in Jira">
                   <IconButton
@@ -147,30 +137,6 @@ export function EpicGroupView({ tickets, jiraBaseUrl, onTicketClick }: EpicGroup
                                   <CloudOffIcon sx={{ fontSize: 16, color: '#f59e0b', ml: 0.5 }} />
                                 </Tooltip>
                               )}
-                              <Tooltip title="Edit ticket">
-                                <IconButton
-                                  size="small"
-                                  onClick={(e) => { e.stopPropagation(); onTicketClick(child); }}
-                                  sx={{ color: '#cbd5e1', '&:hover': { color: '#6366f1' } }}
-                                >
-                                  <EditIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                              {child.jiraKey && jiraBaseUrl && (
-                                <Tooltip title="Open in Jira">
-                                  <IconButton
-                                    size="small"
-                                    component="a"
-                                    href={`${jiraBaseUrl}/browse/${child.jiraKey}`}
-                                    target="_blank"
-                                    rel="noopener"
-                                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                                    sx={{ color: '#cbd5e1', '&:hover': { color: '#6366f1' } }}
-                                  >
-                                    <OpenInNewIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                              )}
                             </Box>
                           }
                         >
@@ -208,15 +174,6 @@ export function EpicGroupView({ tickets, jiraBaseUrl, onTicketClick }: EpicGroup
                                     <CloudOffIcon sx={{ fontSize: 16, color: '#f59e0b', ml: 0.5 }} />
                                   </Tooltip>
                                 )}
-                                <Tooltip title="Edit ticket">
-                                  <IconButton
-                                    size="small"
-                                    onClick={(e) => { e.stopPropagation(); onTicketClick(sub); }}
-                                    sx={{ color: '#cbd5e1', '&:hover': { color: '#6366f1' } }}
-                                  >
-                                    <EditIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
                               </Box>
                             }
                           >
@@ -272,22 +229,11 @@ export function EpicGroupView({ tickets, jiraBaseUrl, onTicketClick }: EpicGroup
                   onClick={() => onTicketClick(ticket)}
                   sx={{ pl: 3, cursor: 'pointer', '&:hover': { background: '#f0f4ff' } }}
                   secondaryAction={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      {isTicketUnsynced(ticket) && (
-                        <Tooltip title="Local changes not synced to Jira">
-                          <CloudOffIcon sx={{ fontSize: 16, color: '#f59e0b', mr: 0.5 }} />
-                        </Tooltip>
-                      )}
-                      <Tooltip title="Edit ticket">
-                        <IconButton
-                          size="small"
-                          onClick={() => onTicketClick(ticket)}
-                          sx={{ color: '#cbd5e1', '&:hover': { color: '#6366f1' } }}
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
+                    isTicketUnsynced(ticket) ? (
+                      <Tooltip title="Local changes not synced to Jira">
+                        <CloudOffIcon sx={{ fontSize: 16, color: '#f59e0b' }} />
                       </Tooltip>
-                    </Box>
+                    ) : undefined
                   }
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mr: 6 }}>
