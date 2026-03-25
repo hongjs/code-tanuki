@@ -714,8 +714,8 @@ export function TicketDetailDialog({
               <ButtonGroup variant="outlined" size="small" disabled={!!jiraLoading || editMode}>
                 <Button
                   startIcon={jiraLoading === 'update' ? <CircularProgress size={14} color="inherit" /> : <CloudUploadIcon />}
-                  onClick={(e) => openScopeMenu(e, 'update')}
-                  sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '8px 0 0 8px' }}
+                  onClick={() => handleJiraAction('update')}
+                  sx={{ textTransform: 'none', fontWeight: 600, borderRadius: subtasks.length > 0 ? '8px 0 0 8px' : '8px' }}
                 >
                   Update on Jira
                 </Button>
@@ -735,8 +735,8 @@ export function TicketDetailDialog({
               <ButtonGroup variant="outlined" size="small" disabled={!!jiraLoading || editMode}>
                 <Button
                   startIcon={jiraLoading === 'sync' ? <CircularProgress size={14} color="inherit" /> : <SyncIcon />}
-                  onClick={(e) => openScopeMenu(e, 'sync')}
-                  sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '8px 0 0 8px' }}
+                  onClick={() => handleJiraAction('sync')}
+                  sx={{ textTransform: 'none', fontWeight: 600, borderRadius: subtasks.length > 0 ? '8px 0 0 8px' : '8px' }}
                 >
                   Sync from Jira
                 </Button>

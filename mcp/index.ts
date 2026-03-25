@@ -6,6 +6,7 @@ import { createServer } from 'http';
 import { registerTicketTools } from './tools/tickets.js';
 import { registerJiraTools } from './tools/jira.js';
 import { registerLogTools } from './tools/logs.js';
+import { registerKnowledgeTools } from './tools/knowledge.js';
 
 const BASE_URL = process.env.CODE_TANUKI_BASE_URL ?? 'http://127.0.0.1:3000';
 const PORT = parseInt(process.env.MCP_PORT ?? '3001', 10);
@@ -19,6 +20,7 @@ function createMcpServer(): McpServer {
   registerTicketTools(server);
   registerJiraTools(server);
   registerLogTools(server);
+  registerKnowledgeTools(server);
 
   return server;
 }
