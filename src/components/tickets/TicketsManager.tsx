@@ -119,7 +119,11 @@ export function TicketsManager() {
       const res = await fetch(`/api/tickets?${params.toString()}`);
       const data = await res.json();
       const raw: LocalTicket[] = data.tickets || [];
-      raw.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      raw.sort((a, b) => {
+        const timeDiff = new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+        if (timeDiff !== 0) return timeDiff;
+        return a.localId.localeCompare(b.localId);
+      });
       setTickets(raw);
     } catch {
       showSnackbar('Failed to load tickets', 'error');
@@ -748,30 +752,30 @@ export function TicketsManager() {
           >
           <Box sx={{ p: 3, pt: 2 }}>
             {viewMode === 'list' && (
-              <Box sx={{ height: 600, width: '100%' }}>
-                <DataGrid
-                  rows={tickets}
-                  columns={columns}
-                  getRowId={(row) => row.localId}
-                  loading={loading}
-                  checkboxSelection
-                  rowSelectionModel={rowSelectionModel}
-                  onRowSelectionModelChange={setRowSelectionModel}
-                  disableRowSelectionOnClick
-                  pageSizeOptions={[20, 50, 100]}
-                  initialState={{
-                    pagination: { paginationModel: { pageSize: 20 } },
-                    sorting: { sortModel: [{ field: 'updatedAt', sort: 'desc' }] },
-                  }}
-                  sx={{
-                    border: 'none',
-                    '& .MuiDataGrid-cell': { display: 'flex', alignItems: 'center' },
-                    '& .MuiDataGrid-cell:focus': { outline: 'none' },
-                    '& .MuiDataGrid-row:hover': { backgroundColor: 'rgba(99, 102, 241, 0.04)' },
-                    '& .MuiDataGrid-columnHeaders': { backgroundColor: '#f8fafc', borderRadius: '8px', mb: 1 },
-                  }}
-                />
-              </Box>
+              <DataGrid
+                autoHeight
+                rows={tickets}
+                columns={columns}
+                getRowId={(row) => row.localId}
+                loading={loading}
+                checkboxSelection
+                rowSelectionModel={rowSelectionModel}
+                onRowSelectionModelChange={setRowSelectionModel}
+                disableRowSelectionOnClick
+                disableVirtualization
+                pageSizeOptions={[20, 50, 100]}
+                initialState={{
+                  pagination: { paginationModel: { pageSize: 20 } },
+                  sorting: { sortModel: [{ field: 'updatedAt', sort: 'desc' }] },
+                }}
+                sx={{
+                  border: 'none',
+                  '& .MuiDataGrid-cell': { display: 'flex', alignItems: 'center' },
+                  '& .MuiDataGrid-cell:focus': { outline: 'none' },
+                  '& .MuiDataGrid-row:hover': { backgroundColor: 'rgba(99, 102, 241, 0.04)' },
+                  '& .MuiDataGrid-columnHeaders': { backgroundColor: '#f8fafc', borderRadius: '8px', mb: 1 },
+                }}
+              />
             )}
             {viewMode === 'story' && (
               <StoryView

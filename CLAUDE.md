@@ -2,6 +2,23 @@
 
 > A comprehensive guide for developers using Claude Code to work with the Code-Tanuki codebase.
 
+## Gemini CLI Delegation Rule
+
+**IMPORTANT**: Whenever you need to handle large-input tasks, delegate them to Gemini CLI via the `mcp__gemini-cli__ask-gemini` MCP tool instead of processing directly. This applies to:
+
+- **Reading/exploring codebases** — e.g., "อธิบาย codebase นี้", "ไฟล์นี้ทำอะไร", "หา pattern ใน code"
+- **Analyzing images** — screenshots, diagrams, UI mockups, any visual content
+- **Reading large text/documents** — long logs, large JSON, markdown docs, API specs
+- **Summarizing or Q&A on large content** — e.g., summarize a file, explain a long config
+- **Simple tasks with large input** — any task where the main effort is reading/processing a lot of input
+
+**How to delegate:**
+```
+mcp__gemini-cli__ask-gemini(prompt: "@path/to/file <your question>")
+```
+
+Use `@` syntax to include files directly in the prompt. Gemini has a large context window and is optimized for these tasks.
+
 ## Project Overview
 
 Code-Tanuki is an AI-powered code review and Jira assistant built with Next.js 16, TypeScript, and Material-UI. It integrates with GitHub, Jira, Claude AI, and Google Gemini to automate code reviews on pull requests, and provides a local Jira ticket management system.
